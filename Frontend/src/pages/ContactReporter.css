@@ -1,0 +1,115 @@
+.contact-page {
+  min-height: calc(100vh - var(--navbar-height));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background: var(--color-gray-50);
+}
+
+.contact-card {
+  background: var(--color-white);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  width: 100%;
+  max-width: 600px;
+  padding: 40px;
+  animation: slideDown var(--transition-base);
+}
+
+.contact-loading {
+  min-height: calc(100vh - var(--navbar-height));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary-600);
+}
+
+.contact-header {
+  margin-bottom: 24px;
+}
+
+.contact-header h2 {
+  font-size: var(--font-size-2xl);
+  color: var(--color-gray-900);
+  margin-bottom: 8px;
+}
+
+.contact-header p {
+  color: var(--color-gray-600);
+}
+
+.contact-warning {
+  display: flex;
+  gap: 16px;
+  background: var(--color-accent-300);
+  padding: 16px;
+  border-radius: var(--radius-md);
+  margin-bottom: 32px;
+  align-items: flex-start;
+  color: var(--color-gray-900);
+}
+
+.warning-icon {
+  color: var(--color-accent-700);
+  flex-shrink: 0;
+}
+
+.contact-warning p {
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+
+.contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-weight: 600;
+  color: var(--color-gray-800);
+}
+
+.form-group textarea {
+  padding: 16px;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  resize: vertical;
+  transition: all var(--transition-fast);
+}
+
+.form-group textarea:focus {
+  border-color: var(--color-primary-500);
+  box-shadow: 0 0 0 3px var(--color-primary-100);
+}
+
+.btn-send {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--color-primary-600);
+  color: var(--color-white);
+  padding: 16px;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  transition: background var(--transition-fast);
+}
+
+.btn-send:hover:not(:disabled) {
+  background: var(--color-primary-700);
+}
+
+.btn-send:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
