@@ -1,5 +1,6 @@
+import { useState, useEffect } from 'react';
 import { Search, Bell, HelpCircle, Plus, Menu, Package, LogOut } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { navLinks } from '../../data/mockData';
 import { useAuthStore } from '../../store/authStore';
 import { useUIStore } from '../../store/uiStore';
@@ -7,8 +8,24 @@ import './Navbar.css';
 
 function Navbar() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, isAuthenticated, logout } = useAuthStore();
   const addToast = useUIStore((state) => state.addToast);
+
+  /* ── Search state synced with URL ── */
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+
+  useEffect(() => {
+    setSearchQuery(searchParams.get('q') || '');
+  }, [searchParams]);
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    const q = searchQuery.trim();
+    if (q) {
+      navigate(`/search?q=${encodeURIComponent(q)}`);
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -44,15 +61,17 @@ function Navbar() {
         </div>
 
         {/* Search Bar */}
-        <div className="navbar__search" id="navbar-search">
+        <form className="navbar__search" id="navbar-search" onSubmit={handleSearch} role="search">
           <Search size={16} className="navbar__search-icon" />
           <input
             type="text"
             className="navbar__search-input"
             placeholder="Temukan apapun..."
             aria-label="Cari barang"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
-        </div>
+        </form>
 
         {/* Action Buttons */}
         <div className="navbar__actions">
