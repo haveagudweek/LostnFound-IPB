@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { MapPin, Clock, ArrowLeft, ShieldCheck, User, MessageSquare, Loader2, AlertTriangle } from 'lucide-react';
+import { MapPin, Clock, Tag, ClipboardList, MessageSquareText, UserCheck, Loader2, AlertTriangle, ArrowLeft, Eye, QrCode } from 'lucide-react';
 import { api } from '../services/api';
 import './ItemDetail.css';
 
@@ -10,6 +10,7 @@ function ItemDetail() {
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedImage, setSelectedImage] = useState(0);
 
   useEffect(() => {
     async function fetchItem() {
@@ -50,78 +51,134 @@ function ItemDetail() {
   }
 
   const isFound = item.status === 'found';
+  const statusLabel = isFound ? 'DITEMUKAN' : 'HILANG';
+  const statusClass = isFound ? 'found' : 'lost';
+  const parentPage = isFound ? 'Barang ditemukan' : 'Barang hilang';
+  const parentPath = isFound ? '/found' : '/lost';
+
+  // Build image gallery (mock: use same image for thumbnails)
+  const images = [item.image, item.image];
+
+  // Generate a ref code from id
+  const refCode = `IPB-${id.replace(/\D/g, '').padStart(3, '0') || '001'}`;
+
+  // Format time label
+  const timeLabel = isFound ? 'WAKTU DITEMUKAN' : 'WAKTU HILANG';
 
   return (
     <main className="item-detail-page">
       <div className="container">
-        <button onClick={() => navigate(-1)} className="btn-back-link">
-          <ArrowLeft size={16} /> Kembali ke daftar
-        </button>
-
-        <div className="item-detail-content">
-          <div className="item-detail-image-section">
-            <div className="item-detail-image-wrapper">
-              <img src={item.image} alt={item.name} onError={(e) => { e.target.src = 'https://via.placeholder.com/600?text=No+Image'; }} />
-              <div className={`item-detail-badge ${isFound ? 'found' : 'lost'}`}>
-                {isFound ? 'BARANG DITEMUKAN' : 'BARANG HILANG'}
+        <div className="item-detail-layout">
+          {/* ── LEFT: Image Gallery ── */}
+          <div className="item-detail-gallery">
+            <div className="item-detail-main-image">
+              <div className="item-detail-ref-badge">
+                <QrCode size={14} />
+                <span>REF: {refCode}</span>
               </div>
+              <img
+                src={images[selectedImage]}
+                alt={item.name}
+                onError={(e) => { e.target.src = 'https://via.placeholder.com/600x450?text=No+Image'; }}
+              />
             </div>
-            
-            <div className="item-security-card">
-              <ShieldCheck size={24} className="security-icon" />
-              <div>
-                <h4>Sistem Terverifikasi</h4>
-                <p>Laporan ini telah diverifikasi oleh tim admin SEEKEM IPB.</p>
-              </div>
+            <div className="item-detail-thumbnails">
+              {images.map((img, idx) => (
+                <button
+                  key={idx}
+                  className={`item-detail-thumb ${selectedImage === idx ? 'active' : ''}`}
+                  onClick={() => setSelectedImage(idx)}
+                >
+                  <img
+                    src={img}
+                    alt={`${item.name} thumbnail ${idx + 1}`}
+                    onError={(e) => { e.target.src = 'https://via.placeholder.com/100?text=No+Image'; }}
+                  />
+                </button>
+              ))}
             </div>
           </div>
 
-          <div className="item-detail-info-section">
-            <div className="item-header">
-              <h1>{item.name}</h1>
-              <span className="category-tag">{item.category}</span>
+          {/* ── RIGHT: Item Info ── */}
+          <div className="item-detail-info">
+            {/* Breadcrumb */}
+            <nav className="item-detail-breadcrumb" aria-label="Breadcrumb">
+              <Link to="/">Dashboard</Link>
+              <span className="breadcrumb-sep">&gt;</span>
+              <Link to={parentPath}>{parentPage}</Link>
+              <span className="breadcrumb-sep">&gt;</span>
+              <span className="breadcrumb-current">{item.name}</span>
+            </nav>
+
+            {/* Status Badge + Views */}
+            <div className="item-detail-status-row">
+              <span className={`item-detail-status-badge ${statusClass}`}>
+                <span className="status-dot"></span>
+                {statusLabel}
+              </span>
+              <span className="item-detail-views">
+                <Eye size={16} />
+                24 Views
+              </span>
             </div>
 
-            <div className="item-meta-list">
-              <div className="meta-item">
-                <MapPin size={20} className="meta-icon" />
-                <div>
-                  <span className="meta-label">Lokasi</span>
-                  <span className="meta-value">{item.location}</span>
+            {/* Item Name */}
+            <h1 className="item-detail-title">{item.name}</h1>
+
+            {/* Info Cards Row */}
+            <div className="item-detail-info-cards">
+              <div className="info-card">
+                <div className="info-card-icon location">
+                  <MapPin size={20} />
+                </div>
+                <div className="info-card-content">
+                  <span className="info-card-label">LOKASI</span>
+                  <span className="info-card-value">{item.location}</span>
                 </div>
               </div>
-              <div className="meta-item">
-                <Clock size={20} className="meta-icon" />
-                <div>
-                  <span className="meta-label">Waktu Dilaporkan</span>
-                  <span className="meta-value">{item.time}</span>
+              <div className="info-card">
+                <div className="info-card-icon time">
+                  <Clock size={20} />
+                </div>
+                <div className="info-card-content">
+                  <span className="info-card-label">{timeLabel}</span>
+                  <span className="info-card-value">{item.time}</span>
                 </div>
               </div>
             </div>
 
-            <div className="item-description">
-              <h3>Deskripsi Barang</h3>
-              <p>{item.description || 'Tidak ada deskripsi tambahan yang diberikan oleh pelapor.'}</p>
-            </div>
-
-            <div className="reporter-info">
-              <h3>Informasi Pelapor</h3>
-              <div className="reporter-card">
-                <div className="reporter-avatar">
-                  <User size={24} />
-                </div>
-                <div className="reporter-details">
-                  <span className="reporter-name">Disamarkan demi privasi</span>
-                  <span className="reporter-role">Mahasiswa IPB</span>
-                </div>
+            {/* Category */}
+            <div className="item-detail-category-card">
+              <div className="info-card-icon category">
+                <Tag size={20} />
+              </div>
+              <div className="info-card-content">
+                <span className="info-card-label">KATEGORI</span>
+                <span className="info-card-value">{item.category}</span>
               </div>
             </div>
 
-            <div className="item-actions">
-              <Link to={`/contact/${item.id}`} className="btn-contact-primary">
-                <MessageSquare size={20} />
-                {isFound ? 'Klaim Barang Ini' : 'Saya Menemukan Barang Ini'}
+            {/* Detail Barang */}
+            <div className="item-detail-description-card">
+              <div className="detail-card-header">
+                <ClipboardList size={20} />
+                <h3>Detail Barang</h3>
+              </div>
+              <p className="detail-card-text">
+                {item.description || 'Tidak ada deskripsi tambahan yang diberikan oleh pelapor.'}
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="item-detail-actions">
+              <Link to={`/contact/${item.id}`} className="btn-action-primary">
+                <MessageSquareText size={20} />
+                <span>Kirim pesan</span>
               </Link>
+              <button className="btn-action-secondary" onClick={() => navigate(`/contact/${item.id}`)}>
+                <UserCheck size={20} />
+                <span>Klaim Barang</span>
+              </button>
             </div>
           </div>
         </div>

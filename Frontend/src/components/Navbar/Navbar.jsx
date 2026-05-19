@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { Search, Bell, HelpCircle, Plus, Menu, Package, LogOut } from 'lucide-react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { Search, Bell, HelpCircle, Plus, Menu, Package, LogOut, User, LogIn, UserPlus, ChevronDown } from 'lucide-react';
+import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { navLinks } from '../../data/mockData';
 import { useAuthStore } from '../../store/authStore';
 import { useUIStore } from '../../store/uiStore';
@@ -8,9 +8,14 @@ import './Navbar.css';
 
 function Navbar() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const { user, isAuthenticated, logout } = useAuthStore();
   const addToast = useUIStore((state) => state.addToast);
+
+  /* ── Profile dropdown state ── */
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef(null);
 
   /* ── Search state synced with URL ── */
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
@@ -18,6 +23,22 @@ function Navbar() {
   useEffect(() => {
     setSearchQuery(searchParams.get('q') || '');
   }, [searchParams]);
+
+  /* ── Close dropdown on outside click ── */
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (profileRef.current && !profileRef.current.contains(e.target)) {
+        setProfileOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  /* ── Close dropdown on route change ── */
+  useEffect(() => {
+    setProfileOpen(false);
+  }, [location.pathname]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -31,6 +52,26 @@ function Navbar() {
     logout();
     addToast('Anda telah keluar.', 'info');
     navigate('/login');
+  };
+
+  /* ── Determine active link based on current pathname ── */
+  const isLinkActive = (href) => {
+    if (href === '/') return location.pathname === '/';
+    // Direct match
+    if (location.pathname.startsWith(href)) return true;
+    // Item detail pages: /item/F* → /found, /item/L* → /lost
+    if (location.pathname.startsWith('/item/')) {
+      const itemId = location.pathname.split('/item/')[1];
+      if (href === '/found' && itemId?.startsWith('F')) return true;
+      if (href === '/lost' && itemId?.startsWith('L')) return true;
+    }
+    // Contact pages: /contact/F* → /found, /contact/L* → /lost
+    if (location.pathname.startsWith('/contact/')) {
+      const contactId = location.pathname.split('/contact/')[1];
+      if (href === '/found' && contactId?.startsWith('F')) return true;
+      if (href === '/lost' && contactId?.startsWith('L')) return true;
+    }
+    return false;
   };
 
   return (
@@ -50,13 +91,18 @@ function Navbar() {
             <Link
               key={link.label}
               to={link.href}
-              className={`navbar__link ${link.active ? 'navbar__link--active' : ''}`}
+              className={`navbar__link ${isLinkActive(link.href) ? 'navbar__link--active' : ''}`}
             >
               {link.label}
             </Link>
           ))}
           {user?.role === 'admin' && (
-            <Link to="/admin" className="navbar__link">Admin Dashboard</Link>
+            <Link
+              to="/admin"
+              className={`navbar__link ${isLinkActive('/admin') ? 'navbar__link--active' : ''}`}
+            >
+              Admin Dashboard
+            </Link>
           )}
         </div>
 
@@ -93,18 +139,72 @@ function Navbar() {
                 </div>
               </button>
 
-              <div className="navbar__avatar" id="user-avatar" title={user.name}>
-                {user.name.charAt(0).toUpperCase()}
+              {/* Authenticated profile dropdown */}
+              <div className="navbar__profile" ref={profileRef}>
+                <button
+                  className="navbar__avatar"
+                  id="user-avatar"
+                  title={user.name}
+                  onClick={() => setProfileOpen((prev) => !prev)}
+                  aria-expanded={profileOpen}
+                  aria-haspopup="true"
+                >
+                  {user.name.charAt(0).toUpperCase()}
+                </button>
+
+                {profileOpen && (
+                  <div className="navbar__dropdown">
+                    <div className="navbar__dropdown-header">
+                      <div className="navbar__dropdown-avatar">
+                        {user.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="navbar__dropdown-info">
+                        <span className="navbar__dropdown-name">{user.name}</span>
+                        <span className="navbar__dropdown-email">{user.email}</span>
+                      </div>
+                    </div>
+                    <div className="navbar__dropdown-divider"></div>
+                    <button className="navbar__dropdown-item navbar__dropdown-item--danger" onClick={handleLogout}>
+                      <LogOut size={16} />
+                      <span>Keluar</span>
+                    </button>
+                  </div>
+                )}
               </div>
-              
-              <button className="navbar__icon-btn" onClick={handleLogout} title="Keluar">
-                <LogOut size={20} />
-              </button>
             </>
           ) : (
-            <div className="navbar__auth-links">
-              <Link to="/login" className="navbar__link">Masuk</Link>
-              <Link to="/register" className="navbar__cta" style={{ textDecoration: 'none' }}>Daftar</Link>
+            /* Guest profile dropdown */
+            <div className="navbar__profile" ref={profileRef}>
+              <button
+                className="navbar__avatar navbar__avatar--guest"
+                id="guest-avatar"
+                onClick={() => setProfileOpen((prev) => !prev)}
+                aria-expanded={profileOpen}
+                aria-haspopup="true"
+                aria-label="Akun"
+              >
+                <User size={18} />
+                <ChevronDown size={14} className={`navbar__avatar-chevron ${profileOpen ? 'navbar__avatar-chevron--open' : ''}`} />
+              </button>
+
+              {profileOpen && (
+                <div className="navbar__dropdown">
+                  <div className="navbar__dropdown-header navbar__dropdown-header--guest">
+                    <User size={24} />
+                    <span className="navbar__dropdown-name">Selamat Datang!</span>
+                    <span className="navbar__dropdown-email">Masuk atau daftar untuk melaporkan barang</span>
+                  </div>
+                  <div className="navbar__dropdown-divider"></div>
+                  <Link to="/login" className="navbar__dropdown-item" onClick={() => setProfileOpen(false)}>
+                    <LogIn size={16} />
+                    <span>Masuk</span>
+                  </Link>
+                  <Link to="/register" className="navbar__dropdown-item navbar__dropdown-item--highlight" onClick={() => setProfileOpen(false)}>
+                    <UserPlus size={16} />
+                    <span>Daftar Akun Baru</span>
+                  </Link>
+                </div>
+              )}
             </div>
           )}
 
