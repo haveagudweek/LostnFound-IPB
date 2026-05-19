@@ -1,19 +1,25 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, ShieldCheck, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, Download, Laptop, Loader2, Search, WalletCards } from 'lucide-react';
+import AdminLayout from '../components/AdminLayout/AdminLayout';
 import { useAuthStore } from '../store/authStore';
-import { useUIStore } from '../store/uiStore';
 import { api } from '../services/api';
 import './Admin.css';
+
+const statusTabs = [
+  { key: 'all', label: 'Semua' },
+  { key: 'pending_verification', label: 'Pending' },
+  { key: 'verified', label: 'Verified' },
+];
 
 function AdminVerification() {
   const navigate = useNavigate();
   const { isAdmin } = useAuthStore();
-  const addToast = useUIStore((state) => state.addToast);
-  
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(null);
+  const [category, setCategory] = useState('Semua Kategori');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     if (!isAdmin) {
@@ -21,109 +27,155 @@ function AdminVerification() {
       return;
     }
 
+    let cancelled = false;
     async function fetchReports() {
       setLoading(true);
-      try {
-        const data = await api.getVerificationReports();
-        setReports(data.filter(r => r.status === 'pending_verification'));
-      } catch {
-        addToast('Gagal memuat laporan.', 'error');
-      } finally {
+      const data = await api.getVerificationReports();
+      if (!cancelled) {
+        setReports(data);
         setLoading(false);
       }
     }
 
     fetchReports();
-  }, [isAdmin, navigate, addToast]);
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdmin, navigate]);
 
-  const handleVerify = async (id, action) => {
-    setActionLoading(id);
-    try {
-      await api.verifyReport(id, action);
-      addToast(`Laporan berhasil ${action === 'approve' ? 'diverifikasi' : 'ditolak'}.`, 'success');
-      setReports(prev => prev.filter(r => r.id !== id));
-    } catch (error) {
-      addToast(error.message, 'error');
-    } finally {
-      setActionLoading(null);
-    }
-  };
+  const filteredReports = useMemo(() => {
+    const loweredQuery = query.trim().toLowerCase();
+    return reports.filter((report) => {
+      const matchesCategory = category === 'Semua Kategori' || report.category === category;
+      const matchesStatus = statusFilter === 'all' || report.status === statusFilter;
+      const matchesQuery = !loweredQuery
+        || report.id.toLowerCase().includes(loweredQuery)
+        || report.name.toLowerCase().includes(loweredQuery)
+        || report.location.toLowerCase().includes(loweredQuery);
+
+      return matchesCategory && matchesStatus && matchesQuery;
+    });
+  }, [reports, category, statusFilter, query]);
 
   if (!isAdmin) return null;
 
   return (
-    <main className="admin-page">
-      <div className="admin-sidebar">
-        <div className="admin-brand">
-          <Package size={24} /> SEEKEM Admin
-        </div>
-        <nav className="admin-nav">
-          <button onClick={() => navigate('/admin')} className="admin-nav-item">
-            <Package size={20} /> Dashboard
+    <AdminLayout>
+      <div className="admin-page">
+        <section className="admin-list-header">
+          <div>
+            <span>LAPORAN MASUK</span>
+            <h1>Manajemen Laporan</h1>
+            <p>Verifikasi dan kelola laporan barang temuan dari civitas akademika.</p>
+          </div>
+          <button className="admin-export-btn">
+            <Download size={16} />
+            Ekspor CSV
           </button>
-          <a href="#" className="active">
-            <ShieldCheck size={20} /> Verifikasi Laporan
-            {reports.length > 0 && <span className="admin-badge">{reports.length}</span>}
-          </a>
-        </nav>
-      </div>
+        </section>
 
-      <div className="admin-content">
-        <div className="admin-header">
-          <h2>Verifikasi Laporan</h2>
-          <p>Tinjau dan verifikasi laporan barang hilang atau ditemukan.</p>
-        </div>
+        <section className="admin-filter-card">
+          <label className="admin-select">
+            <select value={category} onChange={(event) => setCategory(event.target.value)}>
+              <option>Semua Kategori</option>
+              <option>Elektronik</option>
+              <option>Dokumen</option>
+              <option>Lainnya</option>
+            </select>
+            <ChevronDown size={16} />
+          </label>
 
-        {loading ? (
-          <div className="admin-loading">
-            <Loader2 className="spin" size={48} />
-          </div>
-        ) : reports.length === 0 ? (
-          <div className="admin-empty">
-            <ShieldCheck size={48} className="empty-icon" />
-            <h3>Tidak ada laporan yang menunggu verifikasi</h3>
-          </div>
-        ) : (
-          <div className="verification-list">
-            {reports.map((report) => (
-              <div key={report.id} className="verification-card">
-                <div className="verification-image">
-                  <img src={report.image || 'https://via.placeholder.com/150'} alt="Report" />
-                </div>
-                <div className="verification-details">
-                  <div className="report-badge">
-                    {report.reportType === 'found' ? 'LAPORAN TEMUAN' : 'LAPORAN KEHILANGAN'}
-                  </div>
-                  <h3>{report.name}</h3>
-                  <p><strong>Lokasi:</strong> {report.location}</p>
-                  <p><strong>Waktu:</strong> {report.time}</p>
-                  <p><strong>Deskripsi:</strong> {report.description || '-'}</p>
-                </div>
-                <div className="verification-actions">
-                  <button 
-                    className="btn-approve" 
-                    onClick={() => handleVerify(report.id, 'approve')}
-                    disabled={actionLoading === report.id}
-                  >
-                    {actionLoading === report.id ? <Loader2 className="spin" size={16} /> : <CheckCircle size={16} />}
-                    Setujui
-                  </button>
-                  <button 
-                    className="btn-reject" 
-                    onClick={() => handleVerify(report.id, 'reject')}
-                    disabled={actionLoading === report.id}
-                  >
-                    {actionLoading === report.id ? <Loader2 className="spin" size={16} /> : <XCircle size={16} />}
-                    Tolak
-                  </button>
-                </div>
-              </div>
+          <div className="admin-segmented">
+            {statusTabs.map((tab) => (
+              <button
+                key={tab.key}
+                className={statusFilter === tab.key ? 'is-active' : ''}
+                onClick={() => setStatusFilter(tab.key)}
+              >
+                {tab.label}
+              </button>
             ))}
           </div>
-        )}
+
+          <label className="admin-table-search">
+            <Search size={16} />
+            <input
+              type="search"
+              placeholder="Cari no referensi atau nama..."
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </label>
+        </section>
+
+        <section className="admin-table-card">
+          {loading ? (
+            <div className="admin-loading">
+              <Loader2 className="spin" size={42} />
+            </div>
+          ) : (
+            <>
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>REF ID</th>
+                    <th>NAMA BARANG</th>
+                    <th>KATEGORI</th>
+                    <th>LOKASI TEMUAN</th>
+                    <th>TANGGAL</th>
+                    <th>TAG</th>
+                    <th>STATUS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredReports.map((report) => (
+                    <tr key={report.id} onClick={() => navigate(`/admin/verification/${report.id}`)}>
+                      <td>#{report.id}</td>
+                      <td>
+                        <div className="admin-item-cell">
+                          <span>{report.category === 'Elektronik' ? <Laptop size={16} /> : <WalletCards size={16} />}</span>
+                          <strong>{report.name}</strong>
+                        </div>
+                      </td>
+                      <td><span className="admin-pill">{report.category}</span></td>
+                      <td>{report.location}</td>
+                      <td>{report.time}</td>
+                      <td><span className="admin-pill">{report.tag}</span></td>
+                      <td><StatusBadge status={report.status} /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              <footer className="admin-table-footer">
+                <span>Menampilkan 1-{filteredReports.length} dari {reports.length || 45} laporan</span>
+                <div className="admin-pagination">
+                  <button aria-label="Halaman sebelumnya"><ChevronLeft size={15} /></button>
+                  <button className="is-active">1</button>
+                  <button>2</button>
+                  <button>3</button>
+                  <span>...</span>
+                  <button aria-label="Halaman berikutnya"><ChevronRight size={15} /></button>
+                </div>
+              </footer>
+            </>
+          )}
+        </section>
       </div>
-    </main>
+    </AdminLayout>
   );
+}
+
+function StatusBadge({ status }) {
+  if (status === 'verified') {
+    return <span className="admin-status admin-status--green">Verified</span>;
+  }
+
+  if (status === 'rejected') {
+    return <span className="admin-status admin-status--gray">Rejected</span>;
+  }
+
+  return <span className="admin-status admin-status--red">Pending</span>;
 }
 
 export default AdminVerification;

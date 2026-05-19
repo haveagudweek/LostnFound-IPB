@@ -20,10 +20,6 @@ function Navbar() {
   /* ── Search state synced with URL ── */
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
 
-  useEffect(() => {
-    setSearchQuery(searchParams.get('q') || '');
-  }, [searchParams]);
-
   /* ── Close dropdown on outside click ── */
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -34,11 +30,6 @@ function Navbar() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  /* ── Close dropdown on route change ── */
-  useEffect(() => {
-    setProfileOpen(false);
-  }, [location.pathname]);
 
   const handleSearch = (e) => {
     e.preventDefault();

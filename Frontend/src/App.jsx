@@ -16,17 +16,20 @@ import ItemDetail from './pages/ItemDetail';
 import ContactReporter from './pages/ContactReporter';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminVerification from './pages/AdminVerification';
+import AdminReportDetail from './pages/AdminReportDetail';
+import AdminClaims from './pages/AdminClaims';
+import AdminClaimDetail from './pages/AdminClaimDetail';
 
 /* Routes where Navbar & Footer should be hidden */
 const AUTH_ROUTES = ['/login', '/register'];
 
 function App() {
   const { pathname } = useLocation();
-  const isAuthPage = AUTH_ROUTES.includes(pathname);
+  const hideChrome = AUTH_ROUTES.includes(pathname) || pathname.startsWith('/admin');
 
   return (
     <div className="app" id="app">
-      {!isAuthPage && <Navbar />}
+      {!hideChrome && <Navbar />}
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/login" element={<Login />} />
@@ -44,8 +47,11 @@ function App() {
         
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/verification" element={<AdminVerification />} />
+        <Route path="/admin/verification/:id" element={<AdminReportDetail />} />
+        <Route path="/admin/claims" element={<AdminClaims />} />
+        <Route path="/admin/claims/:id" element={<AdminClaimDetail />} />
       </Routes>
-      {!isAuthPage && <Footer />}
+      {!hideChrome && <Footer />}
       <Toast />
     </div>
   );

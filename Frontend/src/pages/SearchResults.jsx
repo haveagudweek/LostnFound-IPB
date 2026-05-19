@@ -72,11 +72,6 @@ function SearchResults() {
     return () => { cancelled = true; };
   }, [query]);
 
-  /* Reset page to 1 when filters change */
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [selectedCategories, statusFilter, locationFilter]);
-
   /* ── Derived: filtered items ── */
   const filteredItems = useMemo(() => {
     let items = [...allItems];
@@ -129,10 +124,12 @@ function SearchResults() {
     setSelectedCategories((prev) =>
       prev.includes(catId) ? prev.filter((c) => c !== catId) : [...prev, catId]
     );
+    setCurrentPage(1);
   }
 
   function toggleStatus(key) {
     setStatusFilter((prev) => ({ ...prev, [key]: !prev[key] }));
+    setCurrentPage(1);
   }
 
   function resetFilters() {
@@ -269,7 +266,10 @@ function SearchResults() {
                   className="sr-select"
                   id="location-filter"
                   value={locationFilter}
-                  onChange={(e) => setLocationFilter(e.target.value)}
+                  onChange={(e) => {
+                    setLocationFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
                 >
                   {LOCATIONS.map((loc) => (
                     <option key={loc} value={loc}>
