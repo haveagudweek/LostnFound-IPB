@@ -8,6 +8,8 @@ from app.schemas.laporan import LaporanCreate, LaporanResponse, LaporanUpdateSta
 from app.services.laporan_service import LaporanService
 from app.api.deps import get_current_user, get_current_active_admin
 
+from app.models.laporan import StatusLaporan, JenisLaporan, KategoriBarang
+
 router = APIRouter()
 
 @router.post("/", response_model=LaporanResponse, status_code=status.HTTP_201_CREATED)
@@ -22,11 +24,22 @@ def create_laporan(
     return LaporanService.create_laporan(db=db, laporan_in=laporan_in, pelapor_id=current_user.id)
 
 @router.get("/", response_model=List[LaporanResponse])
-def get_katalog(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def get_katalog(
+    skip: int = 0, 
+    limit: int = 100, 
+    status: StatusLaporan = StatusLaporan.published, # Default hanya untuk published
+    jenis: JenisLaporan = None,
+    kategori: KategoriBarang = None,
+    search: str = None,
+    db: Session = Depends(get_db)
+):
     """
-    Endpoint publik untuk katalog web. Hanya menampilkan laporan 'published'.
+    Endpoint publik untuk katalog web. 
+    Mendukung filter: `status`, `jenis`, `kategori`, dan pencarian teks (`search`).
     """
-    return LaporanService.get_published_laporans(db, skip=skip, limit=limit)
+    return LaporanService.search_laporans(
+        db, skip=skip, limit=limit, status=status, jenis=jenis, kategori=kategori, search_query=search
+    )
 
 @router.get("/admin/pending", response_model=List[LaporanResponse])
 def get_pending_laporans(
@@ -37,7 +50,7 @@ def get_pending_laporans(
     """
     Hanya bisa diakses oleh Admin. Melihat semua laporan 'pending'.
     """
-    return LaporanService.get_pending_laporans(db, skip=skip, limit=limit)
+    return LaporanService.search_laporans(db, skip=skip, limit=limit, status=StatusLaporan.pending)
 
 @router.patch("/{laporan_id}/status", response_model=LaporanResponse)
 def update_status(

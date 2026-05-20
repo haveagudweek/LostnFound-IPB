@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
-from app.models.laporan import Laporan, StatusLaporan
-from app.schemas.laporan import LaporanCreate
+from app.models.laporan import Laporan, StatusLaporan, JenisLaporan, KategoriBarang
+from sqlalchemy import or_
 
 class LaporanService:
     
@@ -18,16 +18,34 @@ class LaporanService:
         return new_laporan
 
     @staticmethod
-    def get_published_laporans(db: Session, skip: int = 0, limit: int = 100) -> list[Laporan]:
-        # Untuk katalog publik, hanya tampilkan yang published
-        return db.query(Laporan).filter(Laporan.status == StatusLaporan.published)\
-            .order_by(Laporan.created_at.desc()).offset(skip).limit(limit).all()
-
-    @staticmethod
-    def get_pending_laporans(db: Session, skip: int = 0, limit: int = 100) -> list[Laporan]:
-        # Untuk admin dashboard, ambil yang berstatus pending
-        return db.query(Laporan).filter(Laporan.status == StatusLaporan.pending)\
-            .order_by(Laporan.created_at.asc()).offset(skip).limit(limit).all()
+    def search_laporans(
+        db: Session, 
+        skip: int = 0, 
+        limit: int = 100,
+        status: StatusLaporan = None,
+        jenis: JenisLaporan = None,
+        kategori: KategoriBarang = None,
+        search_query: str = None
+    ) -> list[Laporan]:
+        query = db.query(Laporan)
+        
+        if status:
+            query = query.filter(Laporan.status == status)
+        if jenis:
+            query = query.filter(Laporan.jenis_laporan == jenis)
+        if kategori:
+            query = query.filter(Laporan.kategori == kategori)
+        if search_query:
+            # Gunakan ilike untuk pencarian case-insensitive pada nama_barang atau deskripsi
+            search_term = f"%{search_query}%"
+            query = query.filter(
+                or_(
+                    Laporan.nama_barang.ilike(search_term),
+                    Laporan.deskripsi.ilike(search_term)
+                )
+            )
+            
+        return query.order_by(Laporan.created_at.desc()).offset(skip).limit(limit).all()
 
     @staticmethod
     def update_laporan_status(db: Session, laporan_id: int, new_status: StatusLaporan) -> Laporan:
