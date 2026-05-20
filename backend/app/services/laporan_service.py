@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from app.models.laporan import Laporan, StatusLaporan, JenisLaporan, KategoriBarang
+from app.schemas.laporan import LaporanCreate
 from sqlalchemy import or_
 
 class LaporanService:
@@ -58,4 +59,22 @@ class LaporanService:
         
     @staticmethod
     def get_laporan_by_id(db: Session, laporan_id: int) -> Laporan:
-        return db.query(Laporan).filter(Laporan.id == laporan_id).first()
+        laporan = db.query(Laporan).filter(Laporan.id == laporan_id).first()
+        if not laporan:
+            raise HTTPException(status_code=404, detail="Laporan tidak ditemukan")
+        return laporan
+
+    @staticmethod
+    def resolve_laporan_by_owner(db: Session, laporan_id: int, user_id: int) -> Laporan:
+        laporan = db.query(Laporan).filter(Laporan.id == laporan_id).first()
+        if not laporan:
+            raise HTTPException(status_code=404, detail="Laporan tidak ditemukan")
+        
+        # Hanya pelapor asli yang bisa memicu penyelesaian secara mandiri
+        if laporan.pelapor_id != user_id:
+            raise HTTPException(status_code=403, detail="Anda bukan pemilik laporan ini")
+            
+        laporan.status = StatusLaporan.resolved
+        db.commit()
+        db.refresh(laporan)
+        return laporan

@@ -66,3 +66,26 @@ def update_status(
     if not laporan:
         raise HTTPException(status_code=404, detail="Laporan tidak ditemukan")
     return laporan
+
+@router.get("/{laporan_id}", response_model=LaporanResponse)
+def get_detail_laporan(
+    laporan_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Mendapatkan detail spesifik dari satu laporan berdasarkan ID.
+    Dapat diakses oleh publik untuk melihat detail halaman katalog.
+    """
+    return LaporanService.get_laporan_by_id(db, laporan_id)
+
+@router.patch("/{laporan_id}/resolve", response_model=LaporanResponse)
+def resolve_laporan_milik_sendiri(
+    laporan_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Pelapor (pemilik laporan) dapat secara mandiri menutup/menyelesaikan 
+    laporannya (misalnya jika barang sudah ditemukan di luar sistem).
+    """
+    return LaporanService.resolve_laporan_by_owner(db, laporan_id, current_user.id)
