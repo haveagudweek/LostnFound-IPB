@@ -155,6 +155,10 @@ function Navbar() {
                       </div>
                     </div>
                     <div className="navbar__dropdown-divider"></div>
+                    <Link to="/profile" className="navbar__dropdown-item" onClick={() => setProfileOpen(false)}>
+                      <User size={16} />
+                      <span>Profil Saya</span>
+                    </Link>
                     <button className="navbar__dropdown-item navbar__dropdown-item--danger" onClick={handleLogout}>
                       <LogOut size={16} />
                       <span>Keluar</span>

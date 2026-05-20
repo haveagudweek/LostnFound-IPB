@@ -21,7 +21,7 @@ function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!name.trim() || !email.trim() || !password.trim()) {
+    if (!name.trim() || !email.trim() || !nim.trim() || !password.trim()) {
       addToast('Semua kolom wajib diisi.', 'error');
       return;
     }
@@ -43,7 +43,7 @@ function Register() {
 
     setLoading(true);
     try {
-      const user = await api.register({ name, email, password });
+      const user = await api.register({ name, email, nim, password });
       login(user);
       addToast('Registrasi berhasil! Selamat datang.', 'success');
       navigate('/');
@@ -116,6 +116,7 @@ function Register() {
                 placeholder="Nomor Induk"
                 value={nim}
                 onChange={(e) => setNim(e.target.value)}
+                required
                 autoComplete="off"
               />
             </div>

@@ -10,6 +10,7 @@ import Toast from './components/Toast/Toast';
 // Pages
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Profile from './pages/Profile';
 import ItemsPage from './pages/ItemsPage';
 import SearchResults from './pages/SearchResults';
 import ItemDetail from './pages/ItemDetail';
@@ -34,6 +35,7 @@ function App() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/profile" element={<Profile />} />
         
         <Route path="/lost" element={<ItemsPage type="lost" />} />
         <Route path="/found" element={<ItemsPage type="found" />} />

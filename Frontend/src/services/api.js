@@ -142,22 +142,22 @@ export const api = {
     
     // Hardcoded mock users
     if (email === 'admin@apps.ipb.ac.id' && password === 'admin123') {
-      return { id: 1, name: 'Admin', email, role: 'admin' };
+      return { id: 1, name: 'Admin', email, nim: 'ADM001', role: 'admin' };
     }
     if (email === 'rizky@apps.ipb.ac.id' && password === 'user123') {
-      return { id: 2, name: 'Rizky', email, role: 'user' };
+      return { id: 2, name: 'Rizky', email, nim: 'G64210014', role: 'user' };
     }
     
     throw new Error('Email atau password salah.');
   },
 
-  register: async ({ name, email, password }) => {
+  register: async ({ name, email, nim, password }) => {
     await delay(1000);
-    if (!name || !email || !password) throw new Error('Semua kolom wajib diisi.');
+    if (!name || !email || !nim || !password) throw new Error('Semua kolom wajib diisi.');
     if (!email.endsWith('@apps.ipb.ac.id')) throw new Error('Gunakan email institusi IPB (@apps.ipb.ac.id).');
     
     // Simulate successful registration
-    return { id: Date.now(), name, email, role: 'user' };
+    return { id: Date.now(), name, email, nim, role: 'user' };
   },
 
   // --- ITEMS ---
