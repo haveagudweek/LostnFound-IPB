@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, Enum
+from sqlalchemy.orm import relationship
 from app.models.base import Base
 import enum
 
@@ -15,3 +16,6 @@ class User(Base):
     nomor_telepon = Column(String(20), nullable=False)
     password_hash = Column(String(255), nullable=False)
     role = Column(Enum(UserRole), default=UserRole.civitas, nullable=False)
+
+    laporans = relationship("Laporan", back_populates="pelapor", cascade="all, delete-orphan")
+    klaims = relationship("Klaim", back_populates="pengklaim", cascade="all, delete-orphan")
