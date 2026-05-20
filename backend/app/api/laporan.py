@@ -1,11 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Form
 from sqlalchemy.orm import Session
 from typing import List
+from datetime import datetime
 
 from app.cores.database import get_db
 from app.models.user import User
 from app.schemas.laporan import LaporanCreate, LaporanResponse, LaporanUpdateStatus
 from app.services.laporan_service import LaporanService
+from app.services.upload_service import UploadService
 from app.api.deps import get_current_user, get_current_active_admin
 
 from app.models.laporan import StatusLaporan, JenisLaporan, KategoriBarang
@@ -13,14 +15,39 @@ from app.models.laporan import StatusLaporan, JenisLaporan, KategoriBarang
 router = APIRouter()
 
 @router.post("/", response_model=LaporanResponse, status_code=status.HTTP_201_CREATED)
-def create_laporan(
-    laporan_in: LaporanCreate,
+async def create_laporan(
+    jenis_laporan: JenisLaporan = Form(...),
+    tanggal_kejadian: datetime = Form(...),
+    lokasi: str = Form(...),
+    deskripsi: str = Form(...),
+    nama_barang: str = Form(...),
+    kategori: KategoriBarang = Form(...),
+    ciri_ciri: str = Form(...),
+    foto: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """
-    User (civitas) membuat laporan baru. Status otomatis 'pending'.
+    User (civitas) membuat laporan baru. 
+    Menerima file gambar via `multipart/form-data`, diunggah ke cloud, 
+    dan status laporan otomatis 'pending'.
     """
+    # 1. Unggah gambar ke layanan cloud
+    foto_url = await UploadService.upload_image(foto)
+    
+    # 2. Susun payload untuk model LaporanCreate
+    laporan_in = LaporanCreate(
+        jenis_laporan=jenis_laporan,
+        tanggal_kejadian=tanggal_kejadian,
+        lokasi=lokasi,
+        deskripsi=deskripsi,
+        nama_barang=nama_barang,
+        kategori=kategori,
+        ciri_ciri=ciri_ciri,
+        foto_url=foto_url
+    )
+    
+    # 3. Simpan ke database
     return LaporanService.create_laporan(db=db, laporan_in=laporan_in, pelapor_id=current_user.id)
 
 @router.get("/", response_model=List[LaporanResponse])
