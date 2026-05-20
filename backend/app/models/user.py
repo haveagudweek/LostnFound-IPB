@@ -18,3 +18,4 @@ class User(Base):
     role = Column(Enum(UserRole), default=UserRole.civitas, nullable=False)
 
     laporans = relationship("Laporan", back_populates="pelapor", cascade="all, delete-orphan")
+    klaims = relationship("Klaim", back_populates="pengklaim", cascade="all, delete-orphan")

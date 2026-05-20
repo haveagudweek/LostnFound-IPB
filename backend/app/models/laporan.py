@@ -42,5 +42,6 @@ class Laporan(Base):
     status = Column(Enum(StatusLaporan), default=StatusLaporan.pending, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     
-    # Relationship dengan tabel User
+    # Relationship dengan tabel User dan Klaim
     pelapor = relationship("User", back_populates="laporans")
+    klaims = relationship("Klaim", back_populates="laporan", cascade="all, delete-orphan")
