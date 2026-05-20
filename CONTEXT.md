@@ -5,11 +5,11 @@ SEEKEM adalah platform berbasis web untuk memfasilitasi pelaporan dan pencarian 
 
 ## 2. Tech Stack & Infrastructure
 Sistem menggunakan arsitektur Decoupled (Client-Server):
-* **Frontend:** React.js, Vite, Tailwind CSS.
-* **Backend:** Python, FastAPI, Uvicorn (REST API).
-* **Database:** PostgreSQL.
+* **Frontend:** React.js, Vite, Tailwind CSS (Akan di-deploy ke Vercel).
+* **Backend:** Python, FastAPI, Uvicorn (REST API) (Akan di-deploy ke Railway).
+* **Database:** PostgreSQL (Akan di-deploy ke Railway).
 * **ORM:** SQLAlchemy.
-* **Storage (Images):** Supabase Storage (hanya menyimpan URL di database).
+* **Storage (Images):** Supabase dibatalkan. Frontend akan mengunggah gambar ke layanan pihak ketiga (misal: Cloudinary/ImgBB) dan hanya mengirimkan `foto_url` (string) ke Backend.
 * **Authentication:** JWT (JSON Web Tokens) stateless authentication di headers.
 
 ## 3. Core Actors & Authentication
@@ -61,5 +61,5 @@ Logika pemrosesan data dienkapsulasi dalam Service Class (misal: `AuthService`, 
 6. Setelah serah terima fisik selesai, Admin/User dapat mengubah status akhir laporan menjadi `Resolved`.
 
 ## 6. AI Development Guidelines
-* **Backend:** Terapkan modular routing di FastAPI (pisahkan router auth, laporan, dan klaim). Gunakan Pydantic schemas untuk validasi request/response. Jangan simpan file statis di server backend, selalu integrasikan upload multipart form-data langsung/via backend ke Supabase.
-* **Frontend:** Buat reusable components untuk UI (Cards, Buttons, Modals) menggunakan Tailwind. Terapkan Protected Routes di React untuk membatasi akses halaman Admin dan User yang belum login. Handle state management untuk membedakan tampilan katalog berdasarkan `jenis_laporan`.
+* **Backend:** Terapkan modular routing di FastAPI (pisahkan router auth, laporan, dan klaim). Gunakan Pydantic schemas untuk validasi request/response. Jangan simpan file statis di server backend. Karena Supabase dibatalkan, desain API cukup menerima field `foto_url` bertipe string dari frontend (frontend yang menangani upload). Deploy akan dilakukan ke Railway.
+* **Frontend:** Buat reusable components untuk UI (Cards, Buttons, Modals) menggunakan Tailwind. Terapkan Protected Routes di React untuk membatasi akses halaman Admin dan User yang belum login. Handle state management untuk membedakan tampilan katalog berdasarkan `jenis_laporan`. Deploy ke Vercel.

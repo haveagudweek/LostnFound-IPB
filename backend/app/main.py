@@ -2,8 +2,8 @@ from fastapi import FastAPI
 from app.cores.database import engine
 from app.models.base import Base
 # Import all models here to ensure they are registered with Base before create_all
-from app.models import user
-from app.api import auth
+from app.models import user, laporan
+from app.api import auth, laporan as laporan_api
 
 # Buat tabel di database jika belum ada
 Base.metadata.create_all(bind=engine)
@@ -17,6 +17,7 @@ app = FastAPI(
 
 # Registrasi router
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(laporan_api.router, prefix="/api/laporan", tags=["laporan"])
 
 # Route dasar untuk testing
 @app.get("/")
