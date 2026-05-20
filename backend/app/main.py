@@ -1,4 +1,12 @@
 from fastapi import FastAPI
+from app.cores.database import engine
+from app.models.base import Base
+# Import all models here to ensure they are registered with Base before create_all
+from app.models import user
+from app.api import auth
+
+# Buat tabel di database jika belum ada
+Base.metadata.create_all(bind=engine)
 
 # Inisialisasi aplikasi FastAPI
 app = FastAPI(
@@ -7,15 +15,13 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Registrasi router
+app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+
 # Route dasar untuk testing
 @app.get("/")
 async def root():
     return {"message": "Selamat datang di LostnFound-IPB API"}
-
-# Contoh route untuk laporan kehilangan (akan dikembangkan nanti)
-@app.get("/reports")
-async def get_reports():
-    return {"reports": []}  # Placeholder, nanti ambil dari database
 
 # Jika Anda ingin menjalankan server langsung dari file ini
 if __name__ == "__main__":

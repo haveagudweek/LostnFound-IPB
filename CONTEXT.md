@@ -8,7 +8,7 @@ Sistem menggunakan arsitektur Decoupled (Client-Server):
 * **Frontend:** React.js, Vite, Tailwind CSS.
 * **Backend:** Python, FastAPI, Uvicorn (REST API).
 * **Database:** PostgreSQL.
-* **ORM:** SQLAlchemy atau SQLModel.
+* **ORM:** SQLAlchemy.
 * **Storage (Images):** Supabase Storage (hanya menyimpan URL di database).
 * **Authentication:** JWT (JSON Web Tokens) stateless authentication di headers.
 
@@ -16,37 +16,30 @@ Sistem menggunakan arsitektur Decoupled (Client-Server):
 1.  **Civitas Akademika (User):** Melakukan registrasi/login menggunakan simulasi SSO IPB (Validasi dummy: email wajib berakhiran `@apps.ipb.ac.id`).
 2.  **Admin:** Memiliki akses ke Dashboard khusus untuk memverifikasi laporan masuk dan bukti klaim.
 
-## 4. Database Schema (High-Level Design)
-Sistem menggunakan relasi tabel berikut (sesuaikan tipe data di SQLAlchemy):
+## 4. OOP Implementation Mapping & Database Schema
+Implementasi OOP pada backend dipisahkan antara Database Models (SQLAlchemy) dan Data Transfer Objects (Pydantic). 
 
-* **Tabel `users`**
-  * `id` (UUID, PK)
-  * `nama_lengkap` (VARCHAR)
-  * `nim_nip` (VARCHAR, Unique)
-  * `email` (VARCHAR, Unique)
-  * `password_hash` (VARCHAR)
-  * `no_whatsapp` (VARCHAR) - Disembunyikan, hanya dibuka via logic klaim.
-  * `role` (ENUM: 'user', 'admin')
+**A. Database Models (SQLAlchemy Classes):**
+Menerapkan skema relasional dengan pendekatan pragmatis (menggabungkan konsep Laporan dan Barang menjadi satu entitas fisik untuk performa query).
 
-* **Tabel `laporan`**
-  * `id` (UUID, PK)
-  * `pelapor_id` (UUID, FK -> users.id)
-  * `jenis_laporan` (ENUM: 'Barang Hilang', 'Barang Ditemukan')
-  * `nama_barang` (VARCHAR)
-  * `kategori` (VARCHAR)
-  * `deskripsi` (TEXT)
-  * `lokasi_terakhir` (VARCHAR) - Misal: GKU, FMIPA, Dramaga sekitarnya.
-  * `waktu_kejadian` (TIMESTAMP)
-  * `foto_url` (VARCHAR) - URL dari Supabase.
-  * `status` (ENUM: 'Pending', 'Published', 'Claimed', 'Resolved', 'Rejected')
+* **Class `User` (Tabel: `users`)**
+    * Menggunakan Single Table Inheritance (hanya 1 tabel).
+    * Kolom: `id`, `nama`, `email_ipb`, `nomor_telepon`, `password_hash`, `role` (Enum: 'admin', 'civitas').
+* **Class `Laporan` (Tabel: `laporan`)**
+    * Menggabungkan entitas "Laporan" dan "Barang" dari diagram konseptual.
+    * Kolom: `id`, `pelapor_id` (FK User), `jenis_laporan`, `tanggal_kejadian`, `lokasi`, `deskripsi`, `nama_barang`, `kategori`, `ciri_ciri`, `foto_url`, `status` (Pending/Published/Claimed/Resolved/Rejected).
+* **Class `Klaim` (Tabel: `klaim`)**
+    * Kolom: `id`, `laporan_id` (FK Laporan), `pengklaim_id` (FK User), `tanggal_klaim`, `alasan_klaim`, `bukti_foto_url`, `status_klaim` (Pending/Approved/Rejected).
+* **Class `Notifikasi` (Tabel: `notifikasi`)**
+    * Kolom: `id`, `user_id` (FK User), `pesan`, `tipe`, `tanggal_kirim`, `is_read`.
 
-* **Tabel `klaim`**
-  * `id` (UUID, PK)
-  * `laporan_id` (UUID, FK -> laporan.id)
-  * `pengklaim_id` (UUID, FK -> users.id)
-  * `bukti_foto_url` (VARCHAR) - URL dari Supabase.
-  * `deskripsi_bukti` (TEXT) - Penjelasan ciri rahasia barang.
-  * `status_klaim` (ENUM: 'Pending', 'Approved', 'Rejected')
+**B. Data Transfer Objects / DTOs (Pydantic Classes):**
+Digunakan untuk enkapsulasi dan validasi payload dari/ke Frontend.
+* `FormLaporanRincian`: Diimplementasikan sebagai Pydantic Schema (`LaporanCreateSchema`) untuk memvalidasi input saat Civitas mensubmit laporan baru.
+* `UserLoginSchema`, `KlaimCreateSchema`, dll.
+
+**C. Business Logic (Service Classes):**
+Logika pemrosesan data dienkapsulasi dalam Service Class (misal: `AuthService`, `LaporanService`, `KlaimService`) yang akan dipanggil oleh FastAPI Routers.
 
 ## 5. Critical Business Logic & App Flow
 
