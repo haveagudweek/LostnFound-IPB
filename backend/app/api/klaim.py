@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, File, UploadFile, Form
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -6,20 +6,33 @@ from app.cores.database import get_db
 from app.models.user import User
 from app.schemas.klaim import KlaimCreate, KlaimResponse, KlaimVerify
 from app.services.klaim_service import KlaimService
+from app.services.upload_service import UploadService
 from app.api.deps import get_current_user, get_current_active_admin
 
 router = APIRouter()
 
 @router.post("/", response_model=KlaimResponse, status_code=status.HTTP_201_CREATED)
-def create_klaim(
-    klaim_in: KlaimCreate,
+async def create_klaim(
+    laporan_id: int = Form(...),
+    alasan_klaim: str = Form(...),
+    bukti_foto: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """
     User (civitas) membuat klaim atas suatu laporan. 
-    Laporan otomatis berubah statusnya menjadi 'claimed' dan hilang dari katalog publik.
+    Menerima file gambar bukti via `multipart/form-data`.
     """
+    # 1. Unggah bukti gambar
+    foto_url = await UploadService.upload_image(bukti_foto)
+    
+    # 2. Susun payload
+    klaim_in = KlaimCreate(
+        laporan_id=laporan_id,
+        alasan_klaim=alasan_klaim,
+        bukti_foto_url=foto_url
+    )
+    
     return KlaimService.create_klaim(db=db, klaim_in=klaim_in, pengklaim_id=current_user.id)
 
 @router.get("/admin/pending", response_model=List[KlaimResponse])
