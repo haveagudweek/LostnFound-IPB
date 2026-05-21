@@ -15,6 +15,10 @@ class StatusLaporan(str, enum.Enum):
     resolved = "resolved"
     rejected = "rejected"
 
+class PublicStatusFilter(str, enum.Enum):
+    published = "published"
+    resolved = "resolved"
+
 class KategoriBarang(str, enum.Enum):
     electronics = "Electronics"
     documents = "Documents"

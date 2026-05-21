@@ -10,7 +10,7 @@ from app.services.laporan_service import LaporanService
 from app.services.upload_service import UploadService
 from app.api.deps import get_current_user, get_current_active_admin
 
-from app.models.laporan import StatusLaporan, JenisLaporan, KategoriBarang
+from app.models.laporan import StatusLaporan, JenisLaporan, KategoriBarang, PublicStatusFilter
 
 router = APIRouter()
 
@@ -54,7 +54,7 @@ async def create_laporan(
 def get_katalog(
     skip: int = 0, 
     limit: int = 100, 
-    status: StatusLaporan = StatusLaporan.published, # Default hanya untuk published
+    status: PublicStatusFilter = PublicStatusFilter.published, 
     jenis: JenisLaporan = None,
     kategori: KategoriBarang = None,
     search: str = None,
@@ -62,10 +62,11 @@ def get_katalog(
 ):
     """
     Endpoint publik untuk katalog web. 
-    Mendukung filter: `status`, `jenis`, `kategori`, dan pencarian teks (`search`).
+    Mendukung filter: `status` (hanya published/resolved), `jenis`, `kategori`, dan pencarian teks (`search`).
     """
+    actual_status = StatusLaporan(status.value) if status else None
     return LaporanService.search_laporans(
-        db, skip=skip, limit=limit, status=status, jenis=jenis, kategori=kategori, search_query=search
+        db, skip=skip, limit=limit, status=actual_status, jenis=jenis, kategori=kategori, search_query=search
     )
 
 @router.get("/admin/pending", response_model=List[LaporanResponse])
