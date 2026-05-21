@@ -18,12 +18,15 @@ class Settings:
     SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "your_secret_key_here")
     ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7 # 7 days
-    
-    # Konfigurasi S3 (Tigris / Railway)
-    AWS_ENDPOINT_URL_S3: str = os.getenv("AWS_ENDPOINT_URL_S3", "")
-    AWS_REGION: str = os.getenv("AWS_REGION", "auto")
-    BUCKET_NAME: str = os.getenv("BUCKET_NAME", "")
-    AWS_ACCESS_KEY_ID: str = os.getenv("AWS_ACCESS_KEY_ID", "")
-    AWS_SECRET_ACCESS_KEY: str = os.getenv("AWS_SECRET_ACCESS_KEY", "")
+
+    # Konfigurasi Cloudinary
+    CLOUDINARY_CLOUD_NAME: str = os.getenv("CLOUDINARY_CLOUD_NAME", "")
+    CLOUDINARY_API_KEY: str = os.getenv("CLOUDINARY_API_KEY", "")
+    CLOUDINARY_API_SECRET: str = os.getenv("CLOUDINARY_API_SECRET", "")
+    CLOUDINARY_UPLOAD_FOLDER: str = os.getenv("CLOUDINARY_UPLOAD_FOLDER", "lostnfound")
+
+    @property
+    def cloudinary_configured(self) -> bool:
+        return bool(self.CLOUDINARY_CLOUD_NAME and self.CLOUDINARY_API_KEY and self.CLOUDINARY_API_SECRET)
 
 settings = Settings()
