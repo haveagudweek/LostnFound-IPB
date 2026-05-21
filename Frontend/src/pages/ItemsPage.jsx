@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Search, Filter, Loader2, PackageX } from 'lucide-react';
+import { ChevronDown, Filter, Loader2, PackageX, RotateCcw, Search } from 'lucide-react';
 import ItemCard from '../components/ItemCard/ItemCard';
 import { api } from '../services/api';
+import { CAMPUS_LOCATIONS, ITEM_CATEGORIES, categoryLabelFromId } from '../data/catalog';
 import './ItemsPage.css';
 
 function ItemsPage({ type }) {
@@ -9,6 +10,9 @@ function ItemsPage({ type }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [query, setQuery] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [locationFilter, setLocationFilter] = useState('Semua Lokasi');
 
   const isFound = type === 'found';
   const title = isFound ? 'Barang Ditemukan' : 'Barang Hilang';
@@ -18,7 +22,10 @@ function ItemsPage({ type }) {
       setLoading(true);
       setError(null);
       try {
-        const data = await api.getItems(type, query);
+        const data = await api.getItems(type, query, {
+          category: categoryLabelFromId(categoryFilter),
+          location: locationFilter === 'Semua Lokasi' ? '' : locationFilter,
+        });
         setItems(data);
       } catch {
         setError('Gagal memuat data barang.');
@@ -28,7 +35,12 @@ function ItemsPage({ type }) {
     }
 
     fetchItems();
-  }, [type, query]);
+  }, [type, query, categoryFilter, locationFilter]);
+
+  const resetFilters = () => {
+    setCategoryFilter('all');
+    setLocationFilter('Semua Lokasi');
+  };
 
   return (
     <main className="items-page">
@@ -48,11 +60,54 @@ function ItemsPage({ type }) {
               onChange={(e) => setQuery(e.target.value)}
             />
           </div>
-          <button className="items-page__filter-btn">
+          <button
+            type="button"
+            className={`items-page__filter-btn ${showFilters ? 'items-page__filter-btn--active' : ''}`}
+            onClick={() => setShowFilters((prev) => !prev)}
+            aria-expanded={showFilters}
+          >
             <Filter size={20} />
             Filter
           </button>
         </div>
+
+        {showFilters && (
+          <div className="items-page__filters" id="items-page-filters">
+            <label className="items-page__select">
+              <span>Kategori</span>
+              <div>
+                <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
+                  <option value="all">Semua Kategori</option>
+                  {ITEM_CATEGORIES.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.label}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={16} />
+              </div>
+            </label>
+
+            <label className="items-page__select">
+              <span>Lokasi</span>
+              <div>
+                <select value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)}>
+                  {CAMPUS_LOCATIONS.map((location) => (
+                    <option key={location} value={location}>
+                      {location}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={16} />
+              </div>
+            </label>
+
+            <button type="button" className="items-page__reset-btn" onClick={resetFilters}>
+              <RotateCcw size={16} />
+              Reset
+            </button>
+          </div>
+        )}
 
         {error && (
           <div className="items-page__error">

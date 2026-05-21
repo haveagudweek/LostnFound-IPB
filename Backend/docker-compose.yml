@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: ipb_lost_found_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ipb_lost_found
+    ports:
+      - "5433:5432"
+    volumes:
+      - ipb_lost_found_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ipb_lost_found"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  ipb_lost_found_pgdata:

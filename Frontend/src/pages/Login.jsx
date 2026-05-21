@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Landmark, Mail, KeyRound, ArrowRight, Loader2 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/authStore';
@@ -13,8 +13,11 @@ function Login() {
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
+  const location = useLocation();
   const login = useAuthStore((state) => state.login);
   const addToast = useUIStore((state) => state.addToast);
+  const redirectFrom = location.state?.from;
+  const redirectTo = redirectFrom ? `${redirectFrom.pathname}${redirectFrom.search || ''}` : null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -29,7 +32,9 @@ function Login() {
       const user = await api.login({ email, password });
       login(user);
       addToast(`Selamat datang kembali, ${user.name}!`, 'success');
-      if (user.role === 'admin') {
+      if (redirectTo) {
+        navigate(redirectTo, { replace: true });
+      } else if (user.role === 'admin') {
         navigate('/admin');
       } else {
         navigate('/');

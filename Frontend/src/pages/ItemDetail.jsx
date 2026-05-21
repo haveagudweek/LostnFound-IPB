@@ -175,7 +175,7 @@ function ItemDetail() {
                 <MessageSquareText size={20} />
                 <span>Kirim pesan</span>
               </Link>
-              <button className="btn-action-secondary" onClick={() => navigate(`/contact/${item.id}`)}>
+              <button className="btn-action-secondary" onClick={() => navigate(`/claim/${item.id}`)}>
                 <UserCheck size={20} />
                 <span>Klaim Barang</span>
               </button>

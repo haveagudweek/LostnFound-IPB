@@ -1,0 +1,109 @@
+.categories-page {
+  min-height: calc(100vh - var(--navbar-height));
+  padding: 48px 0 72px;
+}
+
+.categories-page__header {
+  margin-bottom: 28px;
+}
+
+.categories-page__header span {
+  color: var(--color-primary-700);
+  font-size: var(--font-size-sm);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.categories-page__header h1 {
+  color: var(--color-primary-900);
+  font-size: var(--font-size-4xl);
+  line-height: 1.15;
+  margin: 6px 0 8px;
+}
+
+.categories-page__header p {
+  color: var(--color-gray-600);
+}
+
+.categories-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.category-card {
+  min-height: 104px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  background: var(--color-white);
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  text-align: left;
+  transition: all var(--transition-base);
+}
+
+.category-card:hover {
+  border-color: var(--color-primary-300);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.category-card__icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  background: var(--color-primary-50);
+  color: var(--color-primary-800);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.category-card__body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.category-card__body strong {
+  color: var(--color-gray-900);
+  font-size: var(--font-size-base);
+}
+
+.category-card__body small {
+  color: var(--color-gray-500);
+  font-size: var(--font-size-sm);
+}
+
+.categories-page__state {
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: var(--color-white);
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-md);
+  color: var(--color-gray-600);
+  box-shadow: var(--shadow-sm);
+}
+
+.categories-page__state--error {
+  background: var(--color-lost-light);
+  color: var(--color-lost);
+}
+
+@media (max-width: 768px) {
+  .categories-page {
+    padding: 32px 0 56px;
+  }
+
+  .categories-page__header h1 {
+    font-size: var(--font-size-3xl);
+  }
+}

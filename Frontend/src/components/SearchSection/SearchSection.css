@@ -95,6 +95,7 @@
 /* Right - Category Filter */
 .search-section__right {
   flex-shrink: 0;
+  width: min(460px, 45%);
 }
 
 .search-section__filter-label {
@@ -140,6 +141,18 @@
 .search-section__pill--active:hover {
   background: var(--color-primary-700);
   color: var(--color-white);
+}
+
+.search-section__pill--more {
+  border-color: var(--color-primary-200);
+  color: var(--color-primary-800);
+  background: var(--color-primary-50);
+  font-weight: 700;
+}
+
+.search-section__pill--more:hover {
+  background: var(--color-primary-100);
+  border-color: var(--color-primary-400);
 }
 
 .search-section__pill-icon {

@@ -1,10 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { Search, Bell, HelpCircle, Plus, Menu, Package, LogOut, User, LogIn, UserPlus, ChevronDown } from 'lucide-react';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
-import { navLinks } from '../../data/mockData';
 import { useAuthStore } from '../../store/authStore';
 import { useUIStore } from '../../store/uiStore';
 import './Navbar.css';
+
+const navLinks = [
+  { label: 'Beranda', href: '/' },
+  { label: 'Barang Hilang', href: '/lost' },
+  { label: 'Barang Ditemukan', href: '/found' },
+];
 
 function Navbar() {
   const navigate = useNavigate();
@@ -15,6 +20,7 @@ function Navbar() {
 
   /* ── Profile dropdown state ── */
   const [profileOpen, setProfileOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const profileRef = useRef(null);
 
   /* ── Search state synced with URL ── */
@@ -44,6 +50,8 @@ function Navbar() {
     addToast('Anda telah keluar.', 'info');
     navigate('/login');
   };
+
+  const closeMobileMenu = () => setMobileOpen(false);
 
   /* ── Determine active link based on current pathname ── */
   const isLinkActive = (href) => {
@@ -114,12 +122,22 @@ function Navbar() {
         <div className="navbar__actions">
           {isAuthenticated ? (
             <>
-              <button className="navbar__icon-btn" id="btn-notifications" aria-label="Notifikasi">
+              <button
+                className="navbar__icon-btn"
+                id="btn-notifications"
+                aria-label="Notifikasi"
+                onClick={() => addToast('Belum ada notifikasi baru.', 'info')}
+              >
                 <Bell size={20} />
                 <span className="notification-dot"></span>
               </button>
 
-              <button className="navbar__icon-btn" id="btn-help" aria-label="Bantuan">
+              <button
+                className="navbar__icon-btn"
+                id="btn-help"
+                aria-label="Bantuan"
+                onClick={() => addToast('Gunakan pencarian atau menu Lapor Barang untuk memulai.', 'info')}
+              >
                 <HelpCircle size={20} />
               </button>
 
@@ -203,11 +221,52 @@ function Navbar() {
             </div>
           )}
 
-          <button className="navbar__mobile-toggle navbar__icon-btn" id="btn-mobile-menu" aria-label="Menu">
+          <button
+            className="navbar__mobile-toggle navbar__icon-btn"
+            id="btn-mobile-menu"
+            aria-label="Menu"
+            aria-expanded={mobileOpen}
+            onClick={() => setMobileOpen((prev) => !prev)}
+          >
             <Menu size={22} />
           </button>
         </div>
       </div>
+
+      {mobileOpen && (
+        <div className="navbar__mobile-panel" id="navbar-mobile-panel">
+          {navLinks.map((link) => (
+            <Link
+              key={link.label}
+              to={link.href}
+              className={`navbar__mobile-link ${isLinkActive(link.href) ? 'navbar__mobile-link--active' : ''}`}
+              onClick={closeMobileMenu}
+            >
+              {link.label}
+            </Link>
+          ))}
+          {user?.role === 'admin' && (
+            <Link
+              to="/admin"
+              className={`navbar__mobile-link ${isLinkActive('/admin') ? 'navbar__mobile-link--active' : ''}`}
+              onClick={closeMobileMenu}
+            >
+              Admin Dashboard
+            </Link>
+          )}
+          {isAuthenticated && (
+            <button
+              className="navbar__mobile-report"
+              onClick={() => {
+                closeMobileMenu();
+                navigate('/report');
+              }}
+            >
+              Lapor Barang
+            </button>
+          )}
+        </div>
+      )}
     </nav>
   );
 }

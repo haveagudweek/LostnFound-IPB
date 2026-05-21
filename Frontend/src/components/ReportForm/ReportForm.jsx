@@ -3,12 +3,15 @@ import { Camera, MapPin, Calendar, ChevronDown, ArrowRight, Loader2 } from 'luci
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../services/api';
 import { useUIStore } from '../../store/uiStore';
+import { useAuthStore } from '../../store/authStore';
+import { ITEM_CATEGORIES } from '../../data/catalog';
 import './ReportForm.css';
 
 function ReportForm({ type }) {
   const isFound = type === 'found';
   const navigate = useNavigate();
   const addToast = useUIStore((state) => state.addToast);
+  const user = useAuthStore((state) => state.user);
   
   const title = isFound ? 'Laporkan Barang Temuan' : 'Laporkan Barang Hilang';
   const locationLabel = isFound ? 'TEMPAT DITEMUKAN' : 'TERAKHIR DILIHAT SEKITAR';
@@ -16,7 +19,7 @@ function ReportForm({ type }) {
 
   const [formData, setFormData] = useState({
     name: '',
-    category: 'Elektronik',
+    category: ITEM_CATEGORIES[0].label,
     location: '',
     time: '',
     description: '',
@@ -42,9 +45,9 @@ function ReportForm({ type }) {
     e.preventDefault();
     setLoading(true);
     try {
-      const newItem = await api.reportItem(formData, type);
-      addToast('Laporan berhasil dikirim dan menunggu verifikasi!', 'success');
-      navigate(`/item/${newItem.id}`);
+      await api.reportItem({ ...formData, reporterId: user?.id }, type);
+      addToast('Laporan berhasil dikirim dan menunggu verifikasi admin.', 'success');
+      navigate('/');
     } catch (error) {
       addToast(error.message, 'error');
     } finally {
@@ -88,11 +91,11 @@ function ReportForm({ type }) {
                   onChange={handleChange}
                   required
                 >
-                  <option value="Elektronik">Elektronik</option>
-                  <option value="Dompet">Dompet</option>
-                  <option value="Kunci">Kunci</option>
-                  <option value="Kartu">Kartu Identitas</option>
-                  <option value="Lainnya">Lainnya</option>
+                  {ITEM_CATEGORIES.map((category) => (
+                    <option key={category.id} value={category.label}>
+                      {category.label}
+                    </option>
+                  ))}
                 </select>
                 <ChevronDown size={16} className="report-form__select-icon" />
               </div>

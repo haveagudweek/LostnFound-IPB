@@ -1,19 +1,24 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ShieldAlert, ArrowLeft, Send, Loader2 } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Info, Loader2, Send } from 'lucide-react';
 import { api } from '../services/api';
 import { useUIStore } from '../store/uiStore';
+import { useAuthStore } from '../store/authStore';
 import './ContactReporter.css';
 
 function ContactReporter() {
   const { id } = useParams();
   const navigate = useNavigate();
   const addToast = useUIStore((state) => state.addToast);
+  const user = useAuthStore((state) => state.user);
   
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [fullName, setFullName] = useState(user?.name || '');
+  const [whatsapp, setWhatsapp] = useState('');
   const [message, setMessage] = useState('');
+  const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
     async function fetchItem() {
@@ -31,20 +36,40 @@ function ContactReporter() {
     fetchItem();
   }, [id, addToast, navigate]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!message.trim()) {
-      addToast('Pesan tidak boleh kosong.', 'error');
+    setSubmitted(true);
+
+    const isPhoneValid = /^08[0-9]{8,12}$/.test(whatsapp.trim());
+
+    if (!fullName.trim()) {
+      addToast('Nama lengkap wajib diisi.', 'error');
       return;
     }
+
+    if (!isPhoneValid) {
+      addToast('Nomor WhatsApp tidak valid. Gunakan format 08xx.', 'error');
+      return;
+    }
+
     setSubmitting(true);
-    
-    // Simulate API call for sending message
-    setTimeout(() => {
+
+    const composedMessage = [
+      `Nama: ${fullName.trim()}`,
+      `WhatsApp: ${whatsapp.trim()}`,
+      `Barang: ${item.name}`,
+      `Pesan: ${message.trim() || 'Pemilik kontak ingin berkomunikasi terkait barang ini.'}`,
+    ].join('\n');
+
+    try {
+      await api.sendMessage(id, composedMessage);
       setSubmitting(false);
-      addToast('Pesan berhasil terkirim. Anda akan dihubungi melalui email.', 'success');
+      addToast('Pesan berhasil terkirim. Kontak Anda akan diteruskan ke pihak terkait.', 'success');
       navigate(`/item/${id}`);
-    }, 1500);
+    } catch (error) {
+      addToast(error.message, 'error');
+      setSubmitting(false);
+    }
   };
 
   if (loading || !item) {
@@ -55,49 +80,103 @@ function ContactReporter() {
     );
   }
 
-  const isClaiming = item.status === 'found';
-  const title = isClaiming ? 'Klaim Barang' : 'Hubungi Pelapor';
+  const isPhoneInvalid = submitted && !/^08[0-9]{8,12}$/.test(whatsapp.trim());
 
   return (
     <main className="contact-page">
-      <div className="contact-card">
-        <button onClick={() => navigate(-1)} className="btn-back-link">
-          <ArrowLeft size={16} /> Kembali ke detail
+      <div className="contact-page__container">
+        <button onClick={() => navigate(-1)} className="contact-back">
+          <ArrowLeft size={16} /> Kembali
         </button>
 
-        <div className="contact-header">
-          <h2>{title}</h2>
-          <p>Anda akan mengirimkan pesan kepada pelapor <strong>{item.name}</strong>.</p>
-        </div>
-
-        <div className="contact-warning">
-          <ShieldAlert size={24} className="warning-icon" />
+        <header className="contact-header">
+          <h1>Hubungi Pelapor</h1>
           <p>
-            <strong>Peringatan Keamanan:</strong> Berikan deskripsi mendetail atau bukti kepemilikan 
-            (seperti foto atau ciri khusus) agar proses verifikasi lebih cepat. Jangan pernah memberikan
-            informasi sensitif seperti PIN atau password.
+            Tukarkan informasi kontak dengan aman untuk mengoordinasikan pengembalian barang
+            yang ditemukan. Informasi Anda akan dikirim langsung kepada pelapor barang tersebut.
           </p>
-        </div>
+        </header>
 
-        <form className="contact-form" onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Pesan Anda</label>
-            <textarea 
-              rows="6" 
-              placeholder={isClaiming 
-                ? "Ceritakan ciri-ciri khusus barang yang Anda ingat..." 
-                : "Tuliskan kapan dan di mana Anda melihat/menemukan barang ini..."}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              required
-            ></textarea>
+        <section className="contact-card" aria-label="Form kirim pesan">
+          <div className="contact-info-box contact-info-box--top">
+            <Info size={20} />
+            <div>
+              <strong>Protokol Komunikasi</strong>
+              <p>
+                Dengan memberikan nomor WhatsApp Anda, Anda memberikan izin kepada sistem untuk meneruskan
+                permintaan kontak Anda kepada individu yang melaporkan barang ini. Pastikan nomor Anda aktif
+                agar dapat menerima pembaruan informasi secara tepat waktu.
+              </p>
+            </div>
           </div>
 
-          <button type="submit" className="btn-send" disabled={submitting}>
-            {submitting ? <Loader2 className="spin" size={20} /> : <Send size={20} />}
-            {submitting ? 'Mengirim...' : 'Kirim Pesan'}
-          </button>
-        </form>
+          <form className="contact-form" onSubmit={handleSubmit}>
+            <div className="contact-form__row">
+              <div className="contact-field">
+                <label htmlFor="contact-name">Nama Lengkap <span>*</span></label>
+                <input
+                  id="contact-name"
+                  type="text"
+                  value={fullName}
+                  onChange={(event) => setFullName(event.target.value)}
+                  placeholder="Masukkan nama lengkap"
+                  required
+                />
+              </div>
+
+              <div className="contact-field">
+                <label htmlFor="contact-whatsapp">Kontak (Whatsapp) <span>*</span></label>
+                <div className={`contact-input-shell ${isPhoneInvalid ? 'contact-input-shell--error' : ''}`}>
+                  <input
+                    id="contact-whatsapp"
+                    type="tel"
+                    inputMode="numeric"
+                    value={whatsapp}
+                    onChange={(event) => setWhatsapp(event.target.value)}
+                    placeholder="08xxxxxxxxxx"
+                    required
+                  />
+                  {isPhoneInvalid && <AlertCircle size={18} />}
+                </div>
+                {isPhoneInvalid && (
+                  <p className="contact-field__error">
+                    <AlertCircle size={14} />
+                    Nomor tidak valid. Gunakan format angka (08xx)
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="contact-field">
+              <label htmlFor="contact-message">Pesan Untuk Pelapor (Optional)</label>
+              <textarea
+                id="contact-message"
+                rows="5"
+                placeholder="Tuliskan detail mengenai barang yang bersangkutan, waktu, dan pertanyaan anda..."
+                value={message}
+                onChange={(event) => setMessage(event.target.value)}
+              />
+            </div>
+
+            <div className="contact-info-box">
+              <Info size={20} />
+              <p>
+                Sistem akan secara otomatis memformat pesan Anda menjadi email profesional yang dikirimkan
+                ke pihak terkait. Kontak langsung Anda akan disertakan agar mereka dapat membalas.
+              </p>
+            </div>
+
+            <div className="contact-actions">
+              <button type="button" className="contact-cancel" onClick={() => navigate(-1)}>
+                Batalkan
+              </button>
+              <button type="submit" className="contact-submit" disabled={submitting}>
+                {submitting ? <Loader2 className="spin" size={18} /> : <Send size={18} />}
+                {submitting ? 'Mengirim...' : 'Kirim Pesan'}
+              </button>
+            </div>
+          </form>
+        </section>
       </div>
     </main>
   );

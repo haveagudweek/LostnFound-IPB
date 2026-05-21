@@ -2,30 +2,10 @@ import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { MapPin, Clock, ChevronLeft, ChevronRight, Loader2, PackageX } from 'lucide-react';
 import { api } from '../services/api';
+import { CAMPUS_LOCATIONS, ITEM_CATEGORIES, categoryIdFromLabel } from '../data/catalog';
 import './SearchResults.css';
 
 /* ── Category & location master data ── */
-const CATEGORIES = [
-  { id: 'elektronik', label: 'Elektronik' },
-  { id: 'buku_dokumen', label: 'Buku & Dokumen' },
-  { id: 'dompet_tas', label: 'Dompet & Tas' },
-  { id: 'kunci', label: 'Kunci' },
-];
-
-const LOCATIONS = [
-  'Semua Lokasi',
-  'Parkiran Faperta',
-  'Kantin Sapta',
-  'Gedung Rektorat Andi Hakim',
-  'Perpustakaan IPB',
-  'Golden Corner',
-  'Auditorium FMIPA',
-  'Halte Bus Kampus',
-  'Gymnasium IPB',
-  'Masjid Al-Hurriyah',
-  'Graha Widya Wisuda',
-];
-
 const ITEMS_PER_PAGE = 6;
 
 /* ── Helper: generate a pseudo-unique reference code from item id ── */
@@ -38,6 +18,7 @@ function refCode(item) {
 function SearchResults() {
   const [searchParams] = useSearchParams();
   const query = searchParams.get('q') || '';
+  const categoryParam = searchParams.get('category');
 
   /* ── Data state ── */
   const [allItems, setAllItems] = useState([]);
@@ -45,13 +26,25 @@ function SearchResults() {
   const [error, setError] = useState(null);
 
   /* ── Filter state ── */
-  const [selectedCategories, setSelectedCategories] = useState([]);
+  const [categoryState, setCategoryState] = useState({
+    param: categoryParam,
+    categories: categoryParam ? [categoryParam] : [],
+  });
   const [showAllCategories, setShowAllCategories] = useState(false);
   const [statusFilter, setStatusFilter] = useState({ lost: true, found: true });
   const [locationFilter, setLocationFilter] = useState('Semua Lokasi');
 
   /* ── Pagination ── */
   const [currentPage, setCurrentPage] = useState(1);
+
+  if (categoryState.param !== categoryParam) {
+    setCategoryState({
+      param: categoryParam,
+      categories: categoryParam ? [categoryParam] : [],
+    });
+  }
+
+  const selectedCategories = categoryState.categories;
 
   /* ── Fetch items whenever query changes ── */
   useEffect(() => {
@@ -79,7 +72,7 @@ function SearchResults() {
     // Category filter
     if (selectedCategories.length > 0) {
       items = items.filter((item) =>
-        selectedCategories.includes(item.category?.toLowerCase())
+        selectedCategories.includes(categoryIdFromLabel(item.category))
       );
     }
 
@@ -106,10 +99,15 @@ function SearchResults() {
   const categoryCounts = useMemo(() => {
     const counts = {};
     allItems.forEach((item) => {
-      const cat = item.category?.toLowerCase() || 'lainnya';
+      const cat = categoryIdFromLabel(item.category);
       counts[cat] = (counts[cat] || 0) + 1;
     });
     return counts;
+  }, [allItems]);
+
+  const locationOptions = useMemo(() => {
+    const itemLocations = allItems.map((item) => item.location).filter(Boolean);
+    return [...new Set([...CAMPUS_LOCATIONS, ...itemLocations])];
   }, [allItems]);
 
   /* ── Pagination logic ── */
@@ -121,9 +119,12 @@ function SearchResults() {
 
   /* ── Event handlers ── */
   function toggleCategory(catId) {
-    setSelectedCategories((prev) =>
-      prev.includes(catId) ? prev.filter((c) => c !== catId) : [...prev, catId]
-    );
+    setCategoryState((prev) => ({
+      param: categoryParam,
+      categories: prev.categories.includes(catId)
+        ? prev.categories.filter((c) => c !== catId)
+        : [...prev.categories, catId],
+    }));
     setCurrentPage(1);
   }
 
@@ -133,7 +134,7 @@ function SearchResults() {
   }
 
   function resetFilters() {
-    setSelectedCategories([]);
+    setCategoryState({ param: categoryParam, categories: [] });
     setStatusFilter({ lost: true, found: true });
     setLocationFilter('Semua Lokasi');
     setCurrentPage(1);
@@ -144,7 +145,7 @@ function SearchResults() {
   }
 
   /* ── Build visible categories list ── */
-  const visibleCategories = showAllCategories ? CATEGORIES : CATEGORIES.slice(0, 4);
+  const visibleCategories = showAllCategories ? ITEM_CATEGORIES : ITEM_CATEGORIES.slice(0, 7);
 
   /* ── Pagination numbers ── */
   function getPaginationNumbers() {
@@ -174,7 +175,11 @@ function SearchResults() {
         <header className="search-results__header">
           <span className="search-results__label">SEARCH RESULTS</span>
           <h1 className="search-results__title">
-            Hasil Pencarian untuk <em>"{query}"</em>
+            {query ? (
+              <>Hasil Pencarian untuk <em>"{query}"</em></>
+            ) : (
+              'Jelajahi Arsip Barang'
+            )}
           </h1>
           <p className="search-results__subtitle">
             Menampilkan {filteredItems.length} hasil dari database arsip.
@@ -211,12 +216,12 @@ function SearchResults() {
                   );
                 })}
               </ul>
-              {CATEGORIES.length > 4 && (
+              {ITEM_CATEGORIES.length > 7 && (
                 <button
                   className="sr-filter-group__more"
                   onClick={() => setShowAllCategories(!showAllCategories)}
                 >
-                  {showAllCategories ? 'Less..' : 'More..'}
+                  {showAllCategories ? 'Tampilkan sedikit' : 'Tampilkan semua'}
                 </button>
               )}
             </div>
@@ -236,7 +241,7 @@ function SearchResults() {
                     <span className="sr-checkbox__box" />
                     <span className="sr-checkbox__label">
                       <span className="sr-status-dot sr-status-dot--lost" />
-                      Lost (Missing)
+                      Hilang
                     </span>
                   </label>
                 </li>
@@ -251,7 +256,7 @@ function SearchResults() {
                     <span className="sr-checkbox__box" />
                     <span className="sr-checkbox__label">
                       <span className="sr-status-dot sr-status-dot--found" />
-                      Found (Secured)
+                      Ditemukan
                     </span>
                   </label>
                 </li>
@@ -271,7 +276,7 @@ function SearchResults() {
                     setCurrentPage(1);
                   }}
                 >
-                  {LOCATIONS.map((loc) => (
+                  {locationOptions.map((loc) => (
                     <option key={loc} value={loc}>
                       {loc}
                     </option>
