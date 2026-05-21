@@ -1,0 +1,233 @@
+/* ── Report Form Styles ── */
+.report-form-page {
+  min-height: calc(100vh - var(--navbar-height));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60px 24px 100px;
+  animation: fadeIn var(--transition-base);
+}
+
+.report-form-page__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-primary-50);
+  color: var(--color-primary-700);
+  padding: 6px 16px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  margin-bottom: 24px;
+}
+
+.badge-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--color-primary-500);
+  border-radius: 50%;
+}
+
+.report-form-page__title {
+  font-size: var(--font-size-4xl);
+  font-weight: 800;
+  color: var(--color-primary-900);
+  margin-bottom: 40px;
+  text-align: center;
+}
+
+.report-form-container {
+  background: var(--color-white);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-primary-800);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  width: 100%;
+  max-width: 800px;
+  padding: 40px;
+}
+
+.report-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.report-form__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.report-form__group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.report-form__label {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-gray-600);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.report-form__input,
+.report-form__select,
+.report-form__textarea {
+  width: 100%;
+  background: var(--color-gray-100);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  font-size: var(--font-size-sm);
+  color: var(--color-gray-900);
+  transition: all var(--transition-fast);
+}
+
+.report-form__input::placeholder,
+.report-form__textarea::placeholder {
+  color: var(--color-gray-500);
+}
+
+.report-form__input:focus,
+.report-form__select:focus,
+.report-form__textarea:focus {
+  background: var(--color-white);
+  border-color: var(--color-primary-500);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+}
+
+/* Input with Icon Wrapper */
+.report-form__input-wrapper,
+.report-form__select-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.report-form__input-icon {
+  position: absolute;
+  left: 16px;
+  color: var(--color-gray-500);
+}
+
+.report-form__input--with-icon {
+  padding-left: 44px;
+}
+
+.report-form__select {
+  appearance: none;
+  cursor: pointer;
+}
+
+.report-form__select-icon {
+  position: absolute;
+  right: 16px;
+  color: var(--color-gray-500);
+  pointer-events: none;
+}
+
+.report-form__textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+/* Upload Area */
+.report-form__upload-area {
+  position: relative;
+  background: var(--color-gray-50);
+  border: 2px dashed var(--color-gray-300);
+  border-radius: var(--radius-md);
+  padding: 40px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.report-form__upload-area:hover {
+  background: var(--color-primary-50);
+  border-color: var(--color-primary-400);
+}
+
+.report-form__file-input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.report-form__upload-icon-wrapper {
+  background: var(--color-white);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-sm);
+  color: var(--color-primary-700);
+  margin-bottom: 16px;
+}
+
+.report-form__upload-text {
+  font-weight: 600;
+  color: var(--color-gray-900);
+  margin-bottom: 4px;
+  font-size: var(--font-size-sm);
+}
+
+.report-form__upload-hint {
+  color: var(--color-gray-500);
+  font-size: var(--font-size-xs);
+}
+
+/* Submit Button */
+.report-form__submit-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.report-form__submit-btn {
+  background: var(--color-primary-900);
+  color: var(--color-white);
+  padding: 14px 32px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all var(--transition-fast);
+}
+
+.report-form__submit-btn:hover {
+  background: var(--color-primary-800);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .report-form__row {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .report-form-container {
+    padding: 24px;
+  }
+  
+  .report-form-page__title {
+    font-size: var(--font-size-2xl);
+  }
+}
