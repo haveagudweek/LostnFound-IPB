@@ -19,3 +19,4 @@ class User(Base):
 
     laporans = relationship("Laporan", back_populates="pelapor", cascade="all, delete-orphan")
     klaims = relationship("Klaim", back_populates="pengklaim", cascade="all, delete-orphan")
+    notifikasis = relationship("Notifikasi", back_populates="user", cascade="all, delete-orphan")
