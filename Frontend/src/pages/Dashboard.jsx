@@ -4,7 +4,6 @@ import SearchSection from '../components/SearchSection/SearchSection';
 import HowItWorks from '../components/HowItWorks/HowItWorks';
 import ItemSection from '../components/ItemSection/ItemSection';
 import { api } from '../services/api';
-import './Dashboard.css';
 
 function Dashboard() {
   const [foundItems, setFoundItems] = useState([]);

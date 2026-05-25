@@ -1,7 +1,6 @@
 import { Navigate, Routes, Route, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar/Navbar';
 import Footer from './components/Footer/Footer';
-import PagePattern from './components/PagePattern/PagePattern';
 import Dashboard from './pages/Dashboard';
 import ReportSelection from './pages/ReportSelection';
 import ReportLost from './pages/ReportLost';
@@ -71,7 +70,6 @@ function App() {
 
   return (
     <div className="app" id="app">
-      <PagePattern />
       {!hideChrome && <Navbar />}
       <Routes>
         <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
