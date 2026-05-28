@@ -117,6 +117,16 @@
   padding-left: 44px;
 }
 
+.report-form__input[type='datetime-local'] {
+  min-height: 48px;
+  color-scheme: light;
+}
+
+.report-form__input[type='datetime-local']::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.7;
+}
+
 .report-form__select {
   appearance: none;
   cursor: pointer;

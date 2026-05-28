@@ -12,6 +12,7 @@ function AdminClaimDetail() {
   const navigate = useNavigate();
   const { isAdmin } = useAuthStore();
   const addToast = useUIStore((state) => state.addToast);
+  const addNotification = useUIStore((state) => state.addNotification);
   const [claim, setClaim] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
@@ -45,8 +46,18 @@ function AdminClaimDetail() {
   const handleVerify = async (action) => {
     setActionLoading(action);
     try {
-      await api.verifyClaim(claim.id, action);
-      addToast(action === 'approve' ? 'Klaim berhasil disetujui.' : 'Klaim berhasil ditolak.', 'success');
+      const updated = await api.verifyClaim(claim.id, action);
+      const approved = action === 'approve';
+      addToast(approved ? 'Klaim berhasil disetujui.' : 'Klaim berhasil ditolak.', 'success');
+      addNotification({
+        title: approved ? 'Klaim sudah diverifikasi' : 'Klaim ditolak admin',
+        message: `Klaim untuk ${updated.itemName} ${approved ? 'sudah disetujui admin.' : 'tidak lolos verifikasi admin.'}`,
+        type: approved ? 'success' : 'error',
+        category: 'claim',
+        userId: updated.userId,
+        link: '/history',
+        showToast: false,
+      });
       navigate('/admin/claims');
     } catch (error) {
       addToast(error.message, 'error');

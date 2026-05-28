@@ -18,6 +18,8 @@ import CategoriesPage from './pages/CategoriesPage';
 import ItemDetail from './pages/ItemDetail';
 import ContactReporter from './pages/ContactReporter';
 import ClaimItem from './pages/ClaimItem';
+import History from './pages/History';
+import Notifications from './pages/Notifications';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminVerification from './pages/AdminVerification';
 import AdminReportDetail from './pages/AdminReportDetail';
@@ -86,6 +88,8 @@ function App() {
         <Route path="/item/:id" element={<ProtectedRoute><ItemDetail /></ProtectedRoute>} />
         <Route path="/contact/:id" element={<ProtectedRoute><ContactReporter /></ProtectedRoute>} />
         <Route path="/claim/:id" element={<ProtectedRoute><ClaimItem /></ProtectedRoute>} />
+        <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
+        <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
         
         <Route path="/report" element={<ProtectedRoute><ReportSelection /></ProtectedRoute>} />
         <Route path="/report/lost" element={<ProtectedRoute><ReportLost /></ProtectedRoute>} />

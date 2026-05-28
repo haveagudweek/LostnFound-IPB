@@ -289,6 +289,23 @@ const mockApi = {
     return delay(claim);
   },
 
+  async getUserHistory(user) {
+    if (!user) return delay({ reports: [], claims: [] });
+
+    const normalizedName = user.name?.trim().toLowerCase();
+    const reports = getReports().filter((report) =>
+      report.reporterId === user.id
+      || report.reporterName?.trim().toLowerCase() === normalizedName
+    );
+    const claims = getClaims().filter((claim) =>
+      claim.userId === user.id
+      || claim.nim === user.nim
+      || claim.ownerName?.trim().toLowerCase() === normalizedName
+    );
+
+    return delay({ reports, claims });
+  },
+
   async getVerificationReports() {
     return delay(getReports());
   },
@@ -414,6 +431,12 @@ const backendApi = {
     method: 'POST',
     body: JSON.stringify(payload),
   }),
+  getUserHistory: (user) => {
+    const params = new URLSearchParams();
+    if (user?.id) params.set('userId', user.id);
+    if (user?.nim) params.set('nim', user.nim);
+    return request(`/history?${params.toString()}`);
+  },
   getVerificationReports: () => request('/admin/verification'),
   getVerificationReportById: (id) => request(`/admin/verification/${id}`),
   verifyReport: (id, action) => request(`/admin/verification/${id}`, {

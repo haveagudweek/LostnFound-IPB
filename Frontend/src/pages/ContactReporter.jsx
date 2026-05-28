@@ -10,6 +10,7 @@ function ContactReporter() {
   const { id } = useParams();
   const navigate = useNavigate();
   const addToast = useUIStore((state) => state.addToast);
+  const addNotification = useUIStore((state) => state.addNotification);
   const user = useAuthStore((state) => state.user);
   
   const [item, setItem] = useState(null);
@@ -64,7 +65,14 @@ function ContactReporter() {
     try {
       await api.sendMessage(id, composedMessage);
       setSubmitting(false);
-      addToast('Pesan berhasil terkirim. Kontak Anda akan diteruskan ke pihak terkait.', 'success');
+      addNotification({
+        title: 'Pesan berhasil dikirim',
+        message: `Pesan terkait ${item.name} sudah diteruskan ke pelapor.`,
+        type: 'success',
+        category: 'message',
+        userId: user?.id,
+        link: `/item/${id}`,
+      });
       navigate(`/item/${id}`);
     } catch (error) {
       addToast(error.message, 'error');

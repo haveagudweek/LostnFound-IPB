@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, Bell, HelpCircle, Plus, Menu, Package, LogOut, User, LogIn, UserPlus, ChevronDown } from 'lucide-react';
+import { Search, Bell, HelpCircle, Plus, Menu, Package, LogOut, User, LogIn, UserPlus, ChevronDown, History, LayoutDashboard, CheckCircle2, Clock3, XCircle } from 'lucide-react';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useUIStore } from '../../store/uiStore';
@@ -11,17 +11,44 @@ const navLinks = [
   { label: 'Barang Ditemukan', href: '/found' },
 ];
 
+const notificationIcons = {
+  success: CheckCircle2,
+  error: XCircle,
+  info: Clock3,
+};
+
+function formatNotificationTime(value) {
+  if (!value) return '';
+
+  return new Intl.DateTimeFormat('id-ID', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value));
+}
+
 function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const { user, isAuthenticated, logout } = useAuthStore();
   const addToast = useUIStore((state) => state.addToast);
+  const notifications = useUIStore((state) => state.notifications);
+  const markNotificationRead = useUIStore((state) => state.markNotificationRead);
+  const userNotifications = notifications.filter((notification) =>
+    !notification.userId || notification.userId === user?.id
+  );
+  const latestNotifications = userNotifications.slice(0, 3);
+  const unreadNotifications = userNotifications.filter((notification) => !notification.read).length;
 
   /* ── Profile dropdown state ── */
   const [profileOpen, setProfileOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const profileRef = useRef(null);
+  const notificationsRef = useRef(null);
 
   /* ── Search state synced with URL ── */
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
@@ -32,9 +59,22 @@ function Navbar() {
       if (profileRef.current && !profileRef.current.contains(e.target)) {
         setProfileOpen(false);
       }
+      if (notificationsRef.current && !notificationsRef.current.contains(e.target)) {
+        setNotificationsOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 12);
+    };
+
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const handleSearch = (e) => {
@@ -52,6 +92,14 @@ function Navbar() {
   };
 
   const closeMobileMenu = () => setMobileOpen(false);
+
+  const handleNotificationClick = (notification) => {
+    markNotificationRead(notification.id);
+    setNotificationsOpen(false);
+    if (notification.link) {
+      navigate(notification.link);
+    }
+  };
 
   /* ── Determine active link based on current pathname ── */
   const isLinkActive = (href) => {
@@ -74,7 +122,7 @@ function Navbar() {
   };
 
   return (
-    <nav className="navbar" id="navbar">
+    <nav className={`navbar ${scrolled ? 'navbar--scrolled' : ''}`} id="navbar">
       <div className="navbar__container">
         {/* Logo */}
         <Link to="/" className="navbar__logo" id="navbar-logo">
@@ -95,14 +143,6 @@ function Navbar() {
               {link.label}
             </Link>
           ))}
-          {user?.role === 'admin' && (
-            <Link
-              to="/admin"
-              className={`navbar__link ${isLinkActive('/admin') ? 'navbar__link--active' : ''}`}
-            >
-              Admin Dashboard
-            </Link>
-          )}
         </div>
 
         {/* Search Bar */}
@@ -122,15 +162,69 @@ function Navbar() {
         <div className="navbar__actions">
           {isAuthenticated ? (
             <>
-              <button
-                className="navbar__icon-btn"
-                id="btn-notifications"
-                aria-label="Notifikasi"
-                onClick={() => addToast('Belum ada notifikasi baru.', 'info')}
-              >
-                <Bell size={20} />
-                <span className="notification-dot"></span>
-              </button>
+              <div className="navbar__notifications" ref={notificationsRef}>
+                <button
+                  className="navbar__icon-btn"
+                  id="btn-notifications"
+                  aria-label="Notifikasi"
+                  aria-expanded={notificationsOpen}
+                  aria-haspopup="true"
+                  onClick={() => {
+                    setNotificationsOpen((prev) => !prev);
+                    setProfileOpen(false);
+                  }}
+                >
+                  <Bell size={20} />
+                  {unreadNotifications > 0 && <span className="notification-dot"></span>}
+                </button>
+
+                {notificationsOpen && (
+                  <div className="navbar__notification-popover">
+                    <div className="navbar__notification-header">
+                      <strong>Notifikasi</strong>
+                      {unreadNotifications > 0 && <span>{unreadNotifications} baru</span>}
+                    </div>
+
+                    {latestNotifications.length ? (
+                      <div className="navbar__notification-list">
+                        {latestNotifications.map((notification) => {
+                          const NotificationIcon = notificationIcons[notification.type] || Bell;
+                          return (
+                            <button
+                              key={notification.id}
+                              type="button"
+                              className={`navbar__notification-item ${notification.read ? '' : 'is-unread'}`}
+                              onClick={() => handleNotificationClick(notification)}
+                            >
+                              <span className={`navbar__notification-icon navbar__notification-icon--${notification.type}`}>
+                                <NotificationIcon size={16} />
+                              </span>
+                              <span className="navbar__notification-body">
+                                <strong>{notification.title}</strong>
+                                <span>{notification.message}</span>
+                                <time>{formatNotificationTime(notification.createdAt)}</time>
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="navbar__notification-empty">Belum ada notifikasi.</div>
+                    )}
+
+                    <button
+                      type="button"
+                      className="navbar__notification-all"
+                      onClick={() => {
+                        setNotificationsOpen(false);
+                        navigate('/notifications');
+                      }}
+                    >
+                      Lihat Semua Notifikasi
+                    </button>
+                  </div>
+                )}
+              </div>
 
               <button
                 className="navbar__icon-btn"
@@ -154,7 +248,10 @@ function Navbar() {
                   className="navbar__avatar"
                   id="user-avatar"
                   title={user.name}
-                  onClick={() => setProfileOpen((prev) => !prev)}
+                  onClick={() => {
+                    setProfileOpen((prev) => !prev);
+                    setNotificationsOpen(false);
+                  }}
                   aria-expanded={profileOpen}
                   aria-haspopup="true"
                 >
@@ -177,6 +274,23 @@ function Navbar() {
                       <User size={16} />
                       <span>Profil Saya</span>
                     </Link>
+                    <Link to="/history" className="navbar__dropdown-item" onClick={() => setProfileOpen(false)}>
+                      <History size={16} />
+                      <span>Riwayat Saya</span>
+                    </Link>
+                    <Link to="/notifications" className="navbar__dropdown-item" onClick={() => setProfileOpen(false)}>
+                      <Bell size={16} />
+                      <span>Notifikasi</span>
+                      {unreadNotifications > 0 && (
+                        <span className="navbar__dropdown-count">{unreadNotifications}</span>
+                      )}
+                    </Link>
+                    {user?.role === 'admin' && (
+                      <Link to="/admin" className="navbar__dropdown-item" onClick={() => setProfileOpen(false)}>
+                        <LayoutDashboard size={16} />
+                        <span>Dashboard Admin</span>
+                      </Link>
+                    )}
                     <button className="navbar__dropdown-item navbar__dropdown-item--danger" onClick={handleLogout}>
                       <LogOut size={16} />
                       <span>Keluar</span>
@@ -191,7 +305,10 @@ function Navbar() {
               <button
                 className="navbar__avatar navbar__avatar--guest"
                 id="guest-avatar"
-                onClick={() => setProfileOpen((prev) => !prev)}
+                onClick={() => {
+                  setProfileOpen((prev) => !prev);
+                  setNotificationsOpen(false);
+                }}
                 aria-expanded={profileOpen}
                 aria-haspopup="true"
                 aria-label="Akun"
@@ -245,15 +362,6 @@ function Navbar() {
               {link.label}
             </Link>
           ))}
-          {user?.role === 'admin' && (
-            <Link
-              to="/admin"
-              className={`navbar__mobile-link ${isLinkActive('/admin') ? 'navbar__mobile-link--active' : ''}`}
-              onClick={closeMobileMenu}
-            >
-              Admin Dashboard
-            </Link>
-          )}
           {isAuthenticated && (
             <button
               className="navbar__mobile-report"

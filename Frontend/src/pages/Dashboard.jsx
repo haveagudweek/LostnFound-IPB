@@ -25,7 +25,7 @@ function Dashboard() {
         ]);
 
         if (!cancelled) {
-          setFoundItems(foundData.slice(0, 5));
+          setFoundItems(foundData.slice(0, 4));
           setLostItems(lostData.slice(0, 4));
         }
       } catch {
