@@ -32,7 +32,7 @@ def get_user_history(
     for lap in laporans:
         item_res = _laporan_to_item(lap)
         # FE History page expects 'itemId' property to exist for reports
-        item_dict = item_res.dict()
+        item_dict = item_res
         item_dict["itemId"] = item_dict["id"]
         # FE also expects 'reportId' and 'tag' sometimes, but we map it as closely as possible
         reports_res.append(item_dict)
@@ -41,7 +41,7 @@ def get_user_history(
     klaims = db.query(Klaim).filter(
         (Klaim.pengklaim_id == target_id) | (Klaim.nim == target_nim)
     ).all()
-    claims_res = [_klaim_to_admin_claim(k, db).dict() for k in klaims]
+    claims_res = [_klaim_to_admin_claim(k) for k in klaims]
 
     return {
         "reports": reports_res,
