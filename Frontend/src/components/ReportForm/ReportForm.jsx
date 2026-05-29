@@ -54,9 +54,21 @@ function ReportForm({ type }) {
   const handleImageChange = (e) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      // Create a local preview URL instead of actual upload for demo
-      const url = URL.createObjectURL(file);
-      setFormData(prev => ({ ...prev, image: url }));
+
+      if (file.size > 5 * 1024 * 1024) {
+        addToast('Ukuran foto maksimal 5MB.', 'error');
+        e.target.value = '';
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        setFormData(prev => ({ ...prev, image: reader.result }));
+      };
+      reader.onerror = () => {
+        addToast('Gagal membaca file foto.', 'error');
+      };
+      reader.readAsDataURL(file);
     }
   };
 

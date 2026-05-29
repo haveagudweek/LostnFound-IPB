@@ -50,15 +50,17 @@ function AdminReportDetail() {
       setReport(updated);
       const approved = action === 'approve';
       addToast(approved ? 'Laporan berhasil diverifikasi.' : 'Laporan berhasil ditolak.', 'success');
-      addNotification({
-        title: approved ? 'Laporan sudah diverifikasi' : 'Laporan ditolak admin',
-        message: `${updated.name} ${approved ? 'sudah diverifikasi dan masuk katalog.' : 'tidak lolos verifikasi admin.'}`,
-        type: approved ? 'success' : 'error',
-        category: 'verification',
-        userId: updated.reporterId,
-        link: '/history',
-        showToast: false,
-      });
+      if (updated.reporterId) {
+        addNotification({
+          title: approved ? 'Laporan sudah diverifikasi' : 'Laporan ditolak admin',
+          message: `${updated.name} ${approved ? 'sudah diverifikasi dan masuk katalog.' : 'tidak lolos verifikasi admin.'}`,
+          type: approved ? 'success' : 'error',
+          category: 'verification',
+          userId: updated.reporterId,
+          link: '/history',
+          showToast: false,
+        });
+      }
       navigate('/admin/verification');
     } catch (error) {
       addToast(error.message, 'error');

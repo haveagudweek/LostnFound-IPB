@@ -10,6 +10,7 @@ const statusTabs = [
   { key: 'all', label: 'Semua' },
   { key: 'pending_verification', label: 'Pending' },
   { key: 'verified', label: 'Verified' },
+  { key: 'rejected', label: 'Rejected' },
 ];
 
 function AdminVerification() {

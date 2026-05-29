@@ -12,6 +12,7 @@ function AdminClaims() {
   const { isAdmin } = useAuthStore();
   const addToast = useUIStore((state) => state.addToast);
   const [claims, setClaims] = useState([]);
+  const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
   const [openStatusMenu, setOpenStatusMenu] = useState(null);
@@ -25,9 +26,13 @@ function AdminClaims() {
     let cancelled = false;
     async function fetchClaims() {
       setLoading(true);
-      const data = await api.getClaims();
+      const [claimData, itemData] = await Promise.all([
+        api.getClaims(),
+        api.getPostedItems(),
+      ]);
       if (!cancelled) {
-        setClaims(data);
+        setClaims(claimData);
+        setItems(itemData);
         setLoading(false);
       }
     }
@@ -42,21 +47,52 @@ function AdminClaims() {
     claims.filter((claim) => claim.status === 'pending'),
   [claims]);
 
-  const processedClaims = useMemo(() =>
-    claims.filter((claim) => claim.status === 'approved' || claim.status === 'rejected'),
-  [claims]);
+  const processedClaims = useMemo(() => {
+    const verifiedClaims = claims
+      .filter((claim) => claim.status === 'approved' || claim.status === 'rejected')
+      .map((claim) => ({ ...claim, source: 'claim' }));
+
+    const reporterConfirmedLostItems = items
+      .filter((item) => item.status === 'lost' && item.claimStatus === 'claimed' && item.claimedByReporter)
+      .map((item) => ({
+        id: `SELF-${item.id}`,
+        source: 'lost_report_confirmation',
+        itemId: item.id,
+        itemName: item.name,
+        ownerName: item.claimantName || item.reporterName || 'Pelapor',
+        claimDate: item.claimedAt || '-',
+        status: 'approved',
+        image: item.image,
+      }));
+
+    return [...verifiedClaims, ...reporterConfirmedLostItems];
+  }, [claims, items]);
 
   const refreshClaims = async () => {
-    const data = await api.getClaims();
-    setClaims(data);
+    const [claimData, itemData] = await Promise.all([
+      api.getClaims(),
+      api.getPostedItems(),
+    ]);
+    setClaims(claimData);
+    setItems(itemData);
   };
 
   const handleUpdateStatus = async (claim, action) => {
     setOpenStatusMenu(null);
     setActionLoading(`${action}-${claim.id}`);
     try {
-      await api.verifyClaim(claim.id, action);
-      addToast(action === 'approve' ? 'Status klaim diubah menjadi approved.' : 'Status klaim diubah menjadi rejected.', 'success');
+      if (claim.source === 'lost_report_confirmation') {
+        if (action === 'approve') {
+          addToast('Barang ini sudah dikonfirmasi sebagai approved oleh pelapor.', 'info');
+          return;
+        }
+
+        await api.managePostedItem(claim.itemId, 'cancel_claim');
+        addToast('Konfirmasi barang hilang dibatalkan. Status claimed dihapus.', 'success');
+      } else {
+        await api.verifyClaim(claim.id, action);
+        addToast(action === 'approve' ? 'Status klaim diubah menjadi approved.' : 'Status klaim diubah menjadi rejected.', 'success');
+      }
       await refreshClaims();
     } catch (error) {
       addToast(error.message, 'error');
@@ -105,7 +141,7 @@ function AdminClaims() {
         <section className="admin-processed-claims">
           <div className="admin-claim-list-header admin-claim-list-header--compact">
             <h1>STATUS KLAIM TERPROSES</h1>
-            <p>Daftar klaim yang sudah disetujui atau ditolak. Statusnya masih bisa diubah oleh admin.</p>
+            <p>Daftar klaim yang sudah disetujui, ditolak, atau dikonfirmasi langsung oleh pelapor barang hilang.</p>
           </div>
 
           {processedClaims.length ? (
@@ -123,7 +159,16 @@ function AdminClaims() {
                 </thead>
                 <tbody>
                   {processedClaims.map((claim) => (
-                    <tr key={claim.id} onClick={() => navigate(`/admin/claims/${claim.id}`)}>
+                    <tr
+                      key={claim.id}
+                      onClick={() => {
+                        if (claim.source === 'lost_report_confirmation') {
+                          navigate(`/item/${claim.itemId}`);
+                        } else {
+                          navigate(`/admin/claims/${claim.id}`);
+                        }
+                      }}
+                    >
                       <td>#{claim.id}</td>
                       <td>
                         <div className="admin-item-cell">

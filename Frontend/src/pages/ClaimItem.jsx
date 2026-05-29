@@ -31,6 +31,15 @@ function ClaimItem() {
       setLoading(true);
       try {
         const data = await api.getItemById(id);
+        if (data.status !== 'found') {
+          throw new Error('Klaim hanya tersedia untuk barang yang ditemukan.');
+        }
+        if (data.postingStatus === 'held') {
+          throw new Error('Barang ini sedang ditahan admin dan belum bisa diklaim.');
+        }
+        if (data.claimStatus === 'claimed') {
+          throw new Error('Barang ini sudah diklaim dan disetujui admin.');
+        }
         if (!cancelled) setItem(data);
       } catch (error) {
         addToast(error.message, 'error');

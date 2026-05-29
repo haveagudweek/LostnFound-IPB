@@ -181,7 +181,10 @@ const getClaims = () => read('claims', seedClaims);
 const setClaims = (claims) => write('claims', claims);
 
 const createId = (prefix, existing) => {
-  const next = existing.length + 1;
+  const next = existing.reduce((max, entry) => {
+    const numeric = Number(String(entry.id).replace(/\D/g, ''));
+    return Number.isFinite(numeric) ? Math.max(max, numeric) : max;
+  }, 0) + 1;
   return `${prefix}-${String(next).padStart(3, '0')}`;
 };
 
@@ -192,6 +195,16 @@ const matchesText = (item, query) => {
   return [item.name, item.category, item.location, item.description]
     .filter(Boolean)
     .some((value) => value.toLowerCase().includes(term));
+};
+
+const isItemReporter = (item, user = {}) => {
+  const normalizedReporter = item.reporterName?.trim().toLowerCase();
+  const normalizedUser = user.name?.trim().toLowerCase() || user.userName?.trim().toLowerCase();
+
+  return Boolean(
+    (item.reporterId && user.id && item.reporterId === user.id)
+    || (normalizedReporter && normalizedUser && normalizedReporter === normalizedUser)
+  );
 };
 
 const mockApi = {
@@ -235,7 +248,8 @@ const mockApi = {
       const matchesCategory = !filters.category || item.category === filters.category;
       const matchesLocation = !filters.location || item.location === filters.location;
       const isPubliclyPosted = item.postingStatus !== 'held';
-      return isPubliclyPosted && matchesType && matchesCategory && matchesLocation && matchesText(item, query);
+      const isUnclaimed = item.claimStatus !== 'claimed';
+      return isPubliclyPosted && isUnclaimed && matchesType && matchesCategory && matchesLocation && matchesText(item, query);
     });
 
     return delay(items);
@@ -275,6 +289,34 @@ const mockApi = {
   async createClaim(payload) {
     const item = await mockApi.getItemById(payload.itemId);
     const claims = getClaims();
+
+    if (item.status !== 'found') {
+      throw new Error('Klaim hanya tersedia untuk barang yang ditemukan.');
+    }
+
+    if (item.postingStatus === 'held') {
+      throw new Error('Barang ini sedang ditahan oleh admin dan belum bisa diklaim.');
+    }
+
+    if (item.claimStatus === 'claimed' || claims.some((claim) =>
+      claim.itemId === item.id && claim.status === 'approved'
+    )) {
+      throw new Error('Barang ini sudah diklaim dan disetujui admin.');
+    }
+
+    const hasActiveClaim = claims.some((claim) =>
+      claim.itemId === item.id
+      && ['pending', 'approved'].includes(claim.status)
+      && (
+        (payload.userId && claim.userId === payload.userId)
+        || (payload.nim && claim.nim === payload.nim)
+      )
+    );
+
+    if (hasActiveClaim) {
+      throw new Error('Anda sudah memiliki klaim aktif untuk barang ini.');
+    }
+
     const claim = {
       ...payload,
       id: createId('CLM', claims),
@@ -294,14 +336,51 @@ const mockApi = {
     return delay(claim);
   },
 
+  async confirmLostItemClaimed(id, user) {
+    const items = getItems();
+    const item = items.find((candidate) => candidate.id === id);
+    if (!item) throw new Error('Barang tidak ditemukan.');
+
+    if (item.status !== 'lost') {
+      throw new Error('Konfirmasi pengambilan hanya tersedia untuk laporan barang hilang.');
+    }
+
+    if (!isItemReporter(item, user)) {
+      throw new Error('Hanya pelapor barang hilang yang bisa mengonfirmasi barang ini.');
+    }
+
+    if (item.claimStatus === 'claimed') {
+      throw new Error('Barang ini sudah dikonfirmasi sebagai claimed.');
+    }
+
+    const updatedItem = {
+      ...item,
+      claimStatus: 'claimed',
+      claimantName: user.name || user.userName || item.reporterName,
+      claimId: `self-${item.id}`,
+      claimedAt: new Date().toLocaleString('id-ID'),
+      claimedByReporter: true,
+    };
+
+    setItems(items.map((candidate) => (candidate.id === id ? updatedItem : candidate)));
+
+    return delay({ ok: true, item: updatedItem });
+  },
+
   async getUserHistory(user) {
     if (!user) return delay({ reports: [], claims: [] });
 
     const normalizedName = user.name?.trim().toLowerCase();
-    const reports = getReports().filter((report) =>
-      report.reporterId === user.id
-      || report.reporterName?.trim().toLowerCase() === normalizedName
-    );
+    const items = getItems();
+    const reports = getReports()
+      .filter((report) =>
+        report.reporterId === user.id
+        || report.reporterName?.trim().toLowerCase() === normalizedName
+      )
+      .map((report) => ({
+        ...report,
+        itemId: report.itemId || items.find((item) => item.reportId === report.id)?.id,
+      }));
     const claims = getClaims().filter((claim) =>
       claim.userId === user.id
       || claim.nim === user.nim
@@ -325,19 +404,21 @@ const mockApi = {
     const reports = getReports();
     const report = reports.find((candidate) => candidate.id === id);
     if (!report) throw new Error('Laporan tidak ditemukan.');
+    const items = getItems();
+    const existingItem = items.find((item) => item.reportId === id);
 
-    const updated = {
+    let updated = {
       ...report,
       status: action === 'approve' ? 'verified' : 'rejected',
     };
 
-    setReports(reports.map((candidate) => (candidate.id === id ? updated : candidate)));
-
     if (action === 'approve') {
-      const items = getItems();
-      if (!items.some((item) => item.reportId === id)) {
+      if (existingItem) {
+        updated = { ...updated, itemId: existingItem.id };
+      } else {
+        const itemId = createId('item', items);
         const item = {
-          id: createId('item', items),
+          id: itemId,
           reportId: id,
           name: updated.name,
           category: updated.category,
@@ -347,10 +428,27 @@ const mockApi = {
           image: updated.image,
           description: updated.description,
           reporterName: updated.reporterName,
+          reporterId: updated.reporterId,
         };
         setItems([item, ...items]);
+        updated = { ...updated, itemId };
       }
     }
+
+    if (action !== 'approve' && existingItem) {
+      setItems(items.filter((item) => item.reportId !== id));
+      const claims = getClaims();
+      setClaims(claims.map((claim) =>
+        claim.itemId === existingItem.id && claim.status !== 'rejected'
+          ? { ...claim, status: 'rejected', adminNote: 'Klaim ditolak karena laporan barang dibatalkan admin.' }
+          : claim
+      ));
+      const reportWithoutItem = { ...updated };
+      delete reportWithoutItem.itemId;
+      updated = reportWithoutItem;
+    }
+
+    setReports(reports.map((candidate) => (candidate.id === id ? updated : candidate)));
 
     return delay(updated);
   },
@@ -375,7 +473,19 @@ const mockApi = {
       status: action === 'approve' ? 'approved' : 'rejected',
     };
 
-    setClaims(claims.map((candidate) => (candidate.id === id ? updated : candidate)));
+    setClaims(claims.map((candidate) => {
+      if (candidate.id === id) return updated;
+
+      if (action === 'approve' && claim.itemId && candidate.itemId === claim.itemId && candidate.status !== 'rejected') {
+        return {
+          ...candidate,
+          status: 'rejected',
+          adminNote: 'Klaim lain untuk barang ini otomatis ditolak karena sudah ada klaim yang disetujui.',
+        };
+      }
+
+      return candidate;
+    }));
 
     if (action === 'approve' && claim.itemId) {
       const items = getItems();
@@ -419,6 +529,13 @@ const mockApi = {
         ));
       }
 
+      const claims = getClaims();
+      setClaims(claims.map((claim) =>
+        claim.itemId === id && claim.status !== 'rejected'
+          ? { ...claim, status: 'rejected', adminNote: 'Klaim ditolak karena posting barang dihapus admin.' }
+          : claim
+      ));
+
       return delay({ ok: true, item: { ...item, removed: true, reportStatus: 'rejected' } });
     }
 
@@ -442,6 +559,8 @@ const mockApi = {
       delete updatedItem.claimStatus;
       delete updatedItem.claimantName;
       delete updatedItem.claimId;
+      delete updatedItem.claimedAt;
+      delete updatedItem.claimedByReporter;
 
       setItems(items.map((candidate) => (candidate.id === id ? updatedItem : candidate)));
 
@@ -515,6 +634,10 @@ const backendApi = {
   createClaim: (payload) => request('/admin/claims', {
     method: 'POST',
     body: JSON.stringify(payload),
+  }),
+  confirmLostItemClaimed: (id, user) => request(`/items/${id}/claim-confirmation`, {
+    method: 'PATCH',
+    body: JSON.stringify(user),
   }),
   getUserHistory: (user) => {
     const params = new URLSearchParams();

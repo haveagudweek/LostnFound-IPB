@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronDown, ChevronLeft, ChevronRight, Eye, EyeOff, Loader2, PackageCheck, Search, Trash2 } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout/AdminLayout';
 import { useAuthStore } from '../store/authStore';
+import { useUIStore } from '../store/uiStore';
 import { api } from '../services/api';
 import './Admin.css';
 
@@ -28,6 +29,7 @@ function itemStatusClass(item) {
 function AdminPostedItems() {
   const navigate = useNavigate();
   const { isAdmin } = useAuthStore();
+  const addToast = useUIStore((state) => state.addToast);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
@@ -109,6 +111,14 @@ function AdminPostedItems() {
     try {
       await api.managePostedItem(item.id, action);
       await refreshItems();
+      const message = action === 'hold'
+        ? 'Posting barang berhasil di-hold.'
+        : action === 'post'
+          ? 'Posting barang berhasil ditampilkan kembali.'
+          : 'Posting barang berhasil dihapus.';
+      addToast(message, 'success');
+    } catch (error) {
+      addToast(error.message, 'error');
     } finally {
       setActionLoading(null);
     }

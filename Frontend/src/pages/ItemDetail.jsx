@@ -1,15 +1,22 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { MapPin, Clock, Tag, ClipboardList, MessageSquareText, UserCheck, Loader2, AlertTriangle, ArrowLeft, Eye, QrCode } from 'lucide-react';
+import { MapPin, Clock, Tag, ClipboardList, MessageSquareText, UserCheck, Loader2, AlertTriangle, ArrowLeft, Eye, QrCode, CheckCircle2 } from 'lucide-react';
 import { api } from '../services/api';
+import { useAuthStore } from '../store/authStore';
+import { useUIStore } from '../store/uiStore';
 import './ItemDetail.css';
 
 function ItemDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const user = useAuthStore((state) => state.user);
+  const isAdmin = useAuthStore((state) => state.isAdmin);
+  const addToast = useUIStore((state) => state.addToast);
+  const addNotification = useUIStore((state) => state.addNotification);
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [confirmingClaimed, setConfirmingClaimed] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
 
   useEffect(() => {
@@ -17,6 +24,9 @@ function ItemDetail() {
       setLoading(true);
       try {
         const data = await api.getItemById(id);
+        if (data.postingStatus === 'held' && !isAdmin) {
+          throw new Error('Barang ini sedang ditahan admin dan belum tampil untuk publik.');
+        }
         setItem(data);
       } catch (err) {
         setError(err.message);
@@ -26,7 +36,7 @@ function ItemDetail() {
     }
 
     fetchItem();
-  }, [id]);
+  }, [id, isAdmin]);
 
   if (loading) {
     return (
@@ -51,6 +61,17 @@ function ItemDetail() {
   }
 
   const isFound = item.status === 'found';
+  const isClaimed = item.claimStatus === 'claimed';
+  const normalizedReporter = item.reporterName?.trim().toLowerCase();
+  const normalizedUser = user?.name?.trim().toLowerCase();
+  const isOwnReport = Boolean(
+    (item.reporterId && item.reporterId === user?.id)
+    || (normalizedReporter && normalizedUser && normalizedReporter === normalizedUser)
+  );
+  const canClaim = isFound && !isClaimed && !isOwnReport;
+  const canConfirmClaimed = !isFound && isOwnReport && !isClaimed;
+  const canContactReporter = !isOwnReport;
+  const isSingleAction = (canConfirmClaimed && !canContactReporter) || (!canContactReporter && !canClaim);
   const statusLabel = isFound ? 'DITEMUKAN' : 'HILANG';
   const statusClass = isFound ? 'found' : 'lost';
   const parentPage = isFound ? 'Barang ditemukan' : 'Barang hilang';
@@ -64,6 +85,27 @@ function ItemDetail() {
 
   // Format time label
   const timeLabel = isFound ? 'WAKTU DITEMUKAN' : 'WAKTU HILANG';
+
+  const handleConfirmClaimed = async () => {
+    setConfirmingClaimed(true);
+    try {
+      const result = await api.confirmLostItemClaimed(item.id, user);
+      setItem(result.item);
+      addToast('Barang berhasil dikonfirmasi sudah diklaim/diambil.', 'success');
+      addNotification({
+        title: 'Barang sudah dikonfirmasi',
+        message: `${result.item.name} sudah ditandai sebagai claimed.`,
+        type: 'success',
+        category: 'claim',
+        userId: user?.id,
+        link: '/history',
+      });
+    } catch (error) {
+      addToast(error.message, 'error');
+    } finally {
+      setConfirmingClaimed(false);
+    }
+  };
 
   return (
     <main className="item-detail-page">
@@ -114,7 +156,7 @@ function ItemDetail() {
             <div className="item-detail-status-row">
               <span className={`item-detail-status-badge ${statusClass}`}>
                 <span className="status-dot"></span>
-                {statusLabel}
+                {isClaimed ? 'SUDAH DIKLAIM' : statusLabel}
               </span>
               <span className="item-detail-views">
                 <Eye size={16} />
@@ -170,15 +212,29 @@ function ItemDetail() {
             </div>
 
             {/* Action Buttons */}
-            <div className="item-detail-actions">
-              <Link to={`/contact/${item.id}`} className="btn-action-primary">
-                <MessageSquareText size={20} />
-                <span>Kirim pesan</span>
-              </Link>
-              <button className="btn-action-secondary" onClick={() => navigate(`/claim/${item.id}`)}>
-                <UserCheck size={20} />
-                <span>Klaim Barang</span>
-              </button>
+            <div className={`item-detail-actions ${isSingleAction ? 'item-detail-actions--single' : ''}`}>
+              {canContactReporter && (
+                <Link to={`/contact/${item.id}`} className="btn-action-primary">
+                  <MessageSquareText size={20} />
+                  <span>Kirim pesan</span>
+                </Link>
+              )}
+              {canConfirmClaimed ? (
+                <button className="btn-action-primary" onClick={handleConfirmClaimed} disabled={confirmingClaimed}>
+                  {confirmingClaimed ? <Loader2 className="spin" size={20} /> : <CheckCircle2 size={20} />}
+                  <span>{confirmingClaimed ? 'Mengonfirmasi...' : 'Konfirmasi Sudah Diambil'}</span>
+                </button>
+              ) : canClaim ? (
+                <button className="btn-action-secondary" onClick={() => navigate(`/claim/${item.id}`)}>
+                  <UserCheck size={20} />
+                  <span>Klaim Barang</span>
+                </button>
+              ) : (
+                <button className="btn-action-secondary" type="button" disabled>
+                  <UserCheck size={20} />
+                  <span>{isClaimed ? 'Sudah Diklaim' : isFound ? 'Tidak Bisa Diklaim' : 'Hubungi Pelapor'}</span>
+                </button>
+              )}
             </div>
           </div>
         </div>

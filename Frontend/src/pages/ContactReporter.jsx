@@ -25,9 +25,15 @@ function ContactReporter() {
     async function fetchItem() {
       try {
         const data = await api.getItemById(id);
+        if (data.postingStatus === 'held') {
+          throw new Error('Barang ini sedang ditahan admin dan belum tampil untuk publik.');
+        }
+        if (data.claimStatus === 'claimed') {
+          throw new Error('Barang ini sudah diklaim dan tidak menerima pesan baru.');
+        }
         setItem(data);
-      } catch {
-        addToast('Barang tidak ditemukan.', 'error');
+      } catch (error) {
+        addToast(error.message || 'Barang tidak ditemukan.', 'error');
         navigate(-1);
       } finally {
         setLoading(false);

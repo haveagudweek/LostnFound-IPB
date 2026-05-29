@@ -70,7 +70,7 @@ function AdminDashboard() {
       const [reportData, claimData, itemData] = await Promise.all([
         api.getVerificationReports(),
         api.getClaims(),
-        api.getItems('all'),
+        api.getPostedItems(),
       ]);
 
       if (!cancelled) {
@@ -92,17 +92,20 @@ function AdminDashboard() {
     const claimedItems = new Set(claims
       .filter((claim) => claim.status === 'approved')
       .map((claim) => claim.itemId || claim.itemName)
-    ).size;
+    );
+    items
+      .filter((item) => item.claimStatus === 'claimed')
+      .forEach((item) => claimedItems.add(item.id));
     const pendingClaims = claims.filter((claim) => claim.status === 'pending').length;
 
     return {
       totalReports: reports.length,
       verifiedReports,
       pendingReports,
-      claimedItems,
+      claimedItems: claimedItems.size,
       pendingClaims,
     };
-  }, [reports, claims]);
+  }, [reports, claims, items]);
 
   const categoryStats = useMemo(() => {
     const source = [...reports, ...items];

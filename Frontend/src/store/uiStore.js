@@ -10,7 +10,7 @@ export const useUIStore = create(
       notifications: [],
       isLoading: false,
       addToast: (message, type = 'info') => {
-        const id = Date.now();
+        const id = createNotificationId();
         set((state) => ({ toasts: [...state.toasts, { id, message, type }] }));
         setTimeout(() => {
           set((state) => ({ toasts: state.toasts.filter((t) => t.id !== id) }));

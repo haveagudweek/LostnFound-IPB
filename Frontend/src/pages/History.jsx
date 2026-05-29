@@ -82,7 +82,7 @@ function normalizeEntries(reports, claims) {
     image: report.image,
     description: report.description,
     referenceId: report.id,
-    actionPath: report.status === 'verified' && report.reportId ? `/item/${report.reportId}` : null,
+    actionPath: report.status === 'verified' && report.itemId ? `/item/${report.itemId}` : null,
   }));
 
   const claimEntries = claims.map((claim) => ({

@@ -49,15 +49,17 @@ function AdminClaimDetail() {
       const updated = await api.verifyClaim(claim.id, action);
       const approved = action === 'approve';
       addToast(approved ? 'Klaim berhasil disetujui.' : 'Klaim berhasil ditolak.', 'success');
-      addNotification({
-        title: approved ? 'Klaim sudah diverifikasi' : 'Klaim ditolak admin',
-        message: `Klaim untuk ${updated.itemName} ${approved ? 'sudah disetujui admin.' : 'tidak lolos verifikasi admin.'}`,
-        type: approved ? 'success' : 'error',
-        category: 'claim',
-        userId: updated.userId,
-        link: '/history',
-        showToast: false,
-      });
+      if (updated.userId) {
+        addNotification({
+          title: approved ? 'Klaim sudah diverifikasi' : 'Klaim ditolak admin',
+          message: `Klaim untuk ${updated.itemName} ${approved ? 'sudah disetujui admin.' : 'tidak lolos verifikasi admin.'}`,
+          type: approved ? 'success' : 'error',
+          category: 'claim',
+          userId: updated.userId,
+          link: '/history',
+          showToast: false,
+        });
+      }
       navigate('/admin/claims');
     } catch (error) {
       addToast(error.message, 'error');
