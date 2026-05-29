@@ -214,7 +214,7 @@ function ItemDetail() {
             {/* Action Buttons */}
             <div className={`item-detail-actions ${isSingleAction ? 'item-detail-actions--single' : ''}`}>
               {canContactReporter && (
-                <Link to={`/contact/${item.id}`} className="btn-action-primary">
+                <Link to={`/laporan/${item.id}/hubungi`} className="btn-action-primary">
                   <MessageSquareText size={20} />
                   <span>Kirim pesan</span>
                 </Link>
