@@ -234,10 +234,15 @@ const mockApi = {
       const matchesType = type === 'all' || item.status === type;
       const matchesCategory = !filters.category || item.category === filters.category;
       const matchesLocation = !filters.location || item.location === filters.location;
-      return matchesType && matchesCategory && matchesLocation && matchesText(item, query);
+      const isPubliclyPosted = item.postingStatus !== 'held';
+      return isPubliclyPosted && matchesType && matchesCategory && matchesLocation && matchesText(item, query);
     });
 
     return delay(items);
+  },
+
+  async getPostedItems() {
+    return delay(getItems());
   },
 
   async getItemById(id) {
@@ -371,7 +376,86 @@ const mockApi = {
     };
 
     setClaims(claims.map((candidate) => (candidate.id === id ? updated : candidate)));
+
+    if (action === 'approve' && claim.itemId) {
+      const items = getItems();
+      setItems(items.map((item) =>
+        item.id === claim.itemId
+          ? { ...item, claimStatus: 'claimed', claimantName: claim.ownerName, claimId: claim.id }
+          : item
+      ));
+    }
+
+    if (action !== 'approve' && claim.itemId) {
+      const items = getItems();
+      setItems(items.map((item) => {
+        if (item.id !== claim.itemId || item.claimId !== claim.id) return item;
+
+        const updatedItem = { ...item };
+        delete updatedItem.claimStatus;
+        delete updatedItem.claimantName;
+        delete updatedItem.claimId;
+        return updatedItem;
+      }));
+    }
+
     return delay(updated);
+  },
+
+  async managePostedItem(id, action) {
+    const items = getItems();
+    const item = items.find((candidate) => candidate.id === id);
+    if (!item) throw new Error('Barang tidak ditemukan.');
+
+    if (action === 'delete') {
+      setItems(items.filter((candidate) => candidate.id !== id));
+
+      if (item.reportId) {
+        const reports = getReports();
+        setReports(reports.map((report) =>
+          report.id === item.reportId
+            ? { ...report, status: 'rejected', adminNote: 'Laporan ditandai ditolak dari halaman barang diposting.' }
+            : report
+        ));
+      }
+
+      return delay({ ok: true, item: { ...item, removed: true, reportStatus: 'rejected' } });
+    }
+
+    if (action === 'hold') {
+      const updatedItem = { ...item, postingStatus: 'held' };
+      setItems(items.map((candidate) => (candidate.id === id ? updatedItem : candidate)));
+      return delay({ ok: true, item: updatedItem });
+    }
+
+    if (action === 'post') {
+      const updatedItem = { ...item };
+      delete updatedItem.postingStatus;
+      setItems(items.map((candidate) => (candidate.id === id ? updatedItem : candidate)));
+      return delay({ ok: true, item: updatedItem });
+    }
+
+    if (action === 'cancel_claim') {
+      const updatedItem = {
+        ...item,
+      };
+      delete updatedItem.claimStatus;
+      delete updatedItem.claimantName;
+      delete updatedItem.claimId;
+
+      setItems(items.map((candidate) => (candidate.id === id ? updatedItem : candidate)));
+
+      const claims = getClaims();
+      setClaims(claims.map((claim) =>
+        claim.itemId === id && claim.status === 'approved'
+          ? { ...claim, status: 'pending', adminNote: 'Status klaim dibatalkan oleh admin.' }
+          : claim
+      ));
+
+      return delay({ ok: true, item: updatedItem });
+    }
+
+    throw new Error('Aksi barang tidak dikenal.');
   },
 };
 
@@ -418,6 +502,7 @@ const backendApi = {
     if (filters.location) params.set('location', filters.location);
     return request(`/items?${params.toString()}`);
   },
+  getPostedItems: () => request('/admin/items'),
   getItemById: (id) => request(`/items/${id}`),
   reportItem: (data, type) => request(`/items/report/${type}`, {
     method: 'POST',
@@ -446,6 +531,10 @@ const backendApi = {
   getClaims: () => request('/admin/claims'),
   getClaimById: (id) => request(`/admin/claims/${id}`),
   verifyClaim: (id, action) => request(`/admin/claims/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ action }),
+  }),
+  managePostedItem: (id, action) => request(`/admin/items/${id}`, {
     method: 'PATCH',
     body: JSON.stringify({ action }),
   }),

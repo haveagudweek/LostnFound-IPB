@@ -23,6 +23,7 @@ import Notifications from './pages/Notifications';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminVerification from './pages/AdminVerification';
 import AdminReportDetail from './pages/AdminReportDetail';
+import AdminPostedItems from './pages/AdminPostedItems';
 import AdminClaims from './pages/AdminClaims';
 import AdminClaimDetail from './pages/AdminClaimDetail';
 import { useAuthStore } from './store/authStore';
@@ -98,6 +99,7 @@ function App() {
         <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
         <Route path="/admin/verification" element={<AdminRoute><AdminVerification /></AdminRoute>} />
         <Route path="/admin/verification/:id" element={<AdminRoute><AdminReportDetail /></AdminRoute>} />
+        <Route path="/admin/items" element={<AdminRoute><AdminPostedItems /></AdminRoute>} />
         <Route path="/admin/claims" element={<AdminRoute><AdminClaims /></AdminRoute>} />
         <Route path="/admin/claims/:id" element={<AdminRoute><AdminClaimDetail /></AdminRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />

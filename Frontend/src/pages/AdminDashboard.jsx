@@ -1,10 +1,55 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Archive, Camera, CheckCircle2, Clock3, FileText, MoreVertical, RotateCcw, ShieldCheck } from 'lucide-react';
+import { Archive, Camera, CheckCircle2, Clock3, FileText, MoreVertical, PackageCheck, RotateCcw, ShieldCheck } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout/AdminLayout';
 import { useAuthStore } from '../store/authStore';
 import { api } from '../services/api';
 import './Admin.css';
+
+const statusLabel = {
+  pending_verification: 'Pending',
+  verified: 'Verified',
+  rejected: 'Rejected',
+  pending: 'Pending',
+  approved: 'Approved',
+};
+
+const statusTone = {
+  pending_verification: 'red',
+  pending: 'red',
+  verified: 'green',
+  approved: 'green',
+  rejected: 'gray',
+  found: 'green',
+  lost: 'red',
+};
+
+function parseLooseDate(value, baseTime = 0) {
+  if (!value) return 0;
+
+  const parsed = Date.parse(value);
+  if (!Number.isNaN(parsed)) return parsed;
+
+  const normalized = String(value)
+    .replace('Hari ini', new Date(baseTime).toLocaleDateString('id-ID'))
+    .replace('Kemarin', new Date(baseTime - 86400000).toLocaleDateString('id-ID'));
+
+  const retry = Date.parse(normalized);
+  return Number.isNaN(retry) ? 0 : retry;
+}
+
+function formatActivityTime(value, baseTime) {
+  const timestamp = parseLooseDate(value, baseTime);
+  if (!timestamp) return value || '-';
+
+  return new Intl.DateTimeFormat('id-ID', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(timestamp));
+}
 
 function AdminDashboard() {
   const navigate = useNavigate();
@@ -12,6 +57,7 @@ function AdminDashboard() {
   const [reports, setReports] = useState([]);
   const [claims, setClaims] = useState([]);
   const [items, setItems] = useState([]);
+  const [dashboardNow] = useState(() => Date.now());
 
   useEffect(() => {
     if (!isAdmin) {
@@ -43,33 +89,115 @@ function AdminDashboard() {
   const stats = useMemo(() => {
     const verifiedReports = reports.filter((report) => report.status === 'verified').length;
     const pendingReports = reports.filter((report) => report.status === 'pending_verification').length;
+    const claimedItems = new Set(claims
+      .filter((claim) => claim.status === 'approved')
+      .map((claim) => claim.itemId || claim.itemName)
+    ).size;
     const pendingClaims = claims.filter((claim) => claim.status === 'pending').length;
 
     return {
-      totalReports: reports.length + items.length,
+      totalReports: reports.length,
       verifiedReports,
       pendingReports,
+      claimedItems,
       pendingClaims,
     };
-  }, [reports, claims, items]);
+  }, [reports, claims]);
 
   const categoryStats = useMemo(() => {
-    const total = Math.max(items.length, 1);
-    const categories = [
-      { label: 'Elektronik', keys: ['Elektronik'] },
-      { label: 'Dokumen', keys: ['Kartu', 'Dokumen'] },
-      { label: 'Aksesoris', keys: ['Kunci', 'Dompet'] },
-      { label: 'Lainnya', keys: ['Lainnya'] },
-    ];
+    const source = [...reports, ...items];
+    const total = Math.max(source.length, 1);
+    const counts = source.reduce((acc, item) => {
+      const category = item.category || 'Lainnya';
+      acc[category] = (acc[category] || 0) + 1;
+      return acc;
+    }, {});
 
-    return categories.map((category) => {
-      const count = items.filter((item) => category.keys.includes(item.category)).length;
-      return {
-        label: category.label,
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([label, count]) => ({
+        label,
+        count,
         value: Math.round((count / total) * 100),
-      };
+      }));
+  }, [reports, items]);
+
+  const chartBars = useMemo(() => {
+    const source = [...reports, ...claims];
+    const counts = Array.from({ length: 7 }, () => 0);
+
+    source.forEach((entry) => {
+      const timestamp = parseLooseDate(entry.reportTime || entry.claimDate || entry.time, dashboardNow);
+      if (!timestamp) return;
+
+      const age = Math.floor((dashboardNow - timestamp) / 86400000);
+      if (age >= 0 && age < 7) {
+        counts[6 - age] += 1;
+      }
     });
-  }, [items]);
+
+    if (!counts.some(Boolean)) {
+      source.slice(0, 7).forEach((_, index) => {
+        counts[index] += 1;
+      });
+    }
+
+    const max = Math.max(...counts, 1);
+    return counts.map((count) => ({
+      count,
+      height: Math.max(12, Math.round((count / max) * 100)),
+    }));
+  }, [reports, claims, dashboardNow]);
+
+  const recentActivities = useMemo(() => {
+    const reportActivities = reports.map((report) => ({
+      id: `report-${report.id}`,
+      icon: FileText,
+      timestamp: parseLooseDate(report.reportTime || report.time, dashboardNow),
+      text: `${report.reporterName || 'Pelapor'} membuat laporan ${report.tag?.toLowerCase() || 'barang'}: ${report.name}.`,
+      meta: `${formatActivityTime(report.reportTime || report.time, dashboardNow)} - Ref: ${report.id}`,
+      badge: statusLabel[report.status] || report.tag || 'Laporan',
+      tone: statusTone[report.status] || 'gray',
+      link: `/admin/verification/${report.id}`,
+    }));
+
+    const claimActivities = claims.map((claim) => ({
+      id: `claim-${claim.id}`,
+      icon: claim.status === 'approved' ? CheckCircle2 : ShieldCheck,
+      timestamp: parseLooseDate(claim.claimDate, dashboardNow),
+      text: `${claim.ownerName || 'Pengguna'} mengirim klaim untuk ${claim.itemName}.`,
+      meta: `${formatActivityTime(claim.claimDate, dashboardNow)} - Ref: ${claim.id}`,
+      badge: statusLabel[claim.status] || 'Klaim',
+      tone: statusTone[claim.status] || 'gray',
+      link: `/admin/claims/${claim.id}`,
+    }));
+
+    const itemActivities = items.map((item) => ({
+      id: `item-${item.id}`,
+      icon: item.claimStatus === 'claimed' ? CheckCircle2 : (item.status === 'found' ? PackageCheck : RotateCcw),
+      timestamp: parseLooseDate(item.time, dashboardNow),
+      text: item.claimStatus === 'claimed'
+        ? `${item.name} sudah diklaim oleh ${item.claimantName || 'pemilik'}.`
+        : `${item.name} masuk katalog barang ${item.status === 'found' ? 'ditemukan' : 'hilang'}.`,
+      meta: `${formatActivityTime(item.time, dashboardNow)} - Ref: ${item.id}`,
+      badge: item.claimStatus === 'claimed' ? 'Claimed' : (item.status === 'found' ? 'Ditemukan' : 'Hilang'),
+      tone: item.claimStatus === 'claimed' ? 'green' : (statusTone[item.status] || 'gray'),
+      link: `/item/${item.id}`,
+    }));
+
+    return [...reportActivities, ...claimActivities, ...itemActivities]
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, 6);
+  }, [reports, claims, items, dashboardNow]);
+
+  const emptyCategories = categoryStats.length === 0;
+
+  const categoryRows = emptyCategories
+    ? [{ label: 'Belum ada kategori', count: 0, value: 0 }]
+    : categoryStats;
+
+  const emptyActivities = recentActivities.length === 0;
 
   if (!isAdmin) return null;
 
@@ -82,10 +210,10 @@ function AdminDashboard() {
         </section>
 
         <section className="admin-metrics" aria-label="Ringkasan admin">
-          <MetricCard label="TOTAL LAPORAN" value={stats.totalReports.toLocaleString('id-ID')} note="+12% this week" icon={Archive} tone="green" />
-          <MetricCard label="DIVERIFIKASI" value={stats.verifiedReports || 956} note="Stable output" icon={ShieldCheck} tone="neutral" />
-          <MetricCard label="PENDING" value={stats.pendingReports || 328} note="Needs attention" icon={Clock3} tone="red" />
-          <MetricCard label="KLAIM MASUK" value={stats.pendingClaims || 45} note="Pending review" icon={Camera} tone="neutral" />
+          <MetricCard label="TOTAL LAPORAN" value={stats.totalReports.toLocaleString('id-ID')} note={`${items.length} barang tampil di katalog`} icon={Archive} tone="green" />
+          <MetricCard label="DIVERIFIKASI" value={stats.verifiedReports.toLocaleString('id-ID')} note="Laporan disetujui admin" icon={ShieldCheck} tone="neutral" />
+          <MetricCard label="PENDING" value={stats.pendingReports.toLocaleString('id-ID')} note="Menunggu verifikasi laporan" icon={Clock3} tone="red" />
+          <MetricCard label="KLAIM MASUK" value={claims.length.toLocaleString('id-ID')} note={`${stats.pendingClaims} pending, ${stats.claimedItems} disetujui`} icon={Camera} tone="neutral" />
         </section>
 
         <section className="admin-dashboard-grid">
@@ -100,8 +228,8 @@ function AdminDashboard() {
               </button>
             </div>
             <div className="admin-chart" aria-label="Grafik laporan per hari">
-              {[38, 58, 46, 72, 64, 84, 70].map((height, index) => (
-                <span key={index} style={{ '--bar-height': `${height}%` }} />
+              {chartBars.map((bar, index) => (
+                <span key={index} title={`${bar.count} aktivitas`} style={{ '--bar-height': `${bar.height}%` }} />
               ))}
             </div>
           </div>
@@ -110,11 +238,11 @@ function AdminDashboard() {
             <h2>Kategori Barang</h2>
             <p>Distribution of reported items.</p>
             <div className="admin-category-list">
-              {categoryStats.map((category) => (
+              {categoryRows.map((category) => (
                 <div className="admin-category-row" key={category.label}>
                   <div>
                     <span>{category.label}</span>
-                    <strong>{category.value}%</strong>
+                    <strong>{category.count ? `${category.count} item` : '-'}</strong>
                   </div>
                   <div className="admin-progress">
                     <span style={{ width: `${category.value}%` }} />
@@ -130,9 +258,21 @@ function AdminDashboard() {
             <h2>Recent Activity</h2>
             <button onClick={() => navigate('/admin/verification')}>View All</button>
           </div>
-          <ActivityRow icon={FileText} text="Budi Santoso melaporkan barang hilang Laptop Lenovo Thinkpad." meta="10 mins ago - Ref: LPT-882" badge="Hilang" tone="red" />
-          <ActivityRow icon={CheckCircle2} text="Admin Siti Aminah memverifikasi klaim Dompet Hitam." meta="45 mins ago - Ref: DMP-441" badge="Verified" tone="green" />
-          <ActivityRow icon={RotateCcw} text="Status barang Kunci Motor Honda diperbarui menjadi Diambil." meta="2 hours ago - Ref: KNC-092" badge="Claimed" tone="gray" />
+          {emptyActivities ? (
+            <div className="admin-empty">Belum ada aktivitas.</div>
+          ) : (
+            recentActivities.map((activity) => (
+              <ActivityRow
+                key={activity.id}
+                icon={activity.icon}
+                text={activity.text}
+                meta={activity.meta}
+                badge={activity.badge}
+                tone={activity.tone}
+                onClick={() => navigate(activity.link)}
+              />
+            ))
+          )}
         </section>
       </div>
     </AdminLayout>
@@ -152,9 +292,9 @@ function MetricCard({ label, value, note, icon: Icon, tone }) {
   );
 }
 
-function ActivityRow({ icon: Icon, text, meta, badge, tone }) {
+function ActivityRow({ icon: Icon, text, meta, badge, tone, onClick }) {
   return (
-    <div className="admin-activity__row">
+    <button type="button" className="admin-activity__row" onClick={onClick}>
       <div className="admin-activity__icon">
         <Icon size={18} />
       </div>
@@ -163,7 +303,7 @@ function ActivityRow({ icon: Icon, text, meta, badge, tone }) {
         <span>{meta}</span>
       </div>
       <span className={`admin-status admin-status--${tone}`}>{badge}</span>
-    </div>
+    </button>
   );
 }
 

@@ -6,7 +6,7 @@
 .item-detail-page {
   padding: 40px 0 60px;
   min-height: calc(100vh - var(--navbar-height));
-  background: var(--color-gray-50);
+  background: transparent;
   animation: fadeIn 0.3s ease;
 }
 
@@ -19,6 +19,7 @@
   align-items: center;
   justify-content: center;
   text-align: center;
+  background: transparent;
 }
 
 .item-detail-loading {

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Bell, FileText, Grid2X2, Home, LogOut, Search, Settings, ShieldCheck } from 'lucide-react';
+import { Bell, FileText, Grid2X2, Home, LogOut, PackageCheck, Search, Settings, ShieldCheck } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useUIStore } from '../../store/uiStore';
 
@@ -34,7 +34,7 @@ function AdminLayout({ children, searchPlaceholder = 'Search claims...' }) {
       <aside className="admin-shell__sidebar">
         <div className="admin-shell__brand">
           <div className="admin-shell__brand-mark">
-            <Search size={22} />
+            <img src="/seekem-logo.png" alt="" className="admin-shell__brand-logo" />
           </div>
           <div>
             <strong>Seekem</strong>
@@ -50,6 +50,10 @@ function AdminLayout({ children, searchPlaceholder = 'Search claims...' }) {
           <NavLink to="/admin/verification" className={({ isActive }) => `admin-shell__nav-item ${isActive ? 'is-active' : ''}`}>
             <FileText size={20} />
             <span>Laporan Masuk</span>
+          </NavLink>
+          <NavLink to="/admin/items" className={({ isActive }) => `admin-shell__nav-item ${isActive ? 'is-active' : ''}`}>
+            <PackageCheck size={20} />
+            <span>Barang Diposting</span>
           </NavLink>
           <NavLink to="/admin/claims" className={({ isActive }) => `admin-shell__nav-item ${isActive ? 'is-active' : ''}`}>
             <ShieldCheck size={20} />

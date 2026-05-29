@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, Bell, HelpCircle, Plus, Menu, Package, LogOut, User, LogIn, UserPlus, ChevronDown, History, LayoutDashboard, CheckCircle2, Clock3, XCircle } from 'lucide-react';
+import { Search, Bell, HelpCircle, Plus, Menu, LogOut, User, LogIn, UserPlus, ChevronDown, History, LayoutDashboard, CheckCircle2, Clock3, XCircle } from 'lucide-react';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useUIStore } from '../../store/uiStore';
@@ -127,7 +127,7 @@ function Navbar() {
         {/* Logo */}
         <Link to="/" className="navbar__logo" id="navbar-logo">
           <div className="navbar__logo-icon">
-            <Package size={20} />
+            <img src="/seekem-logo.png" alt="" className="navbar__logo-img" />
           </div>
           <span className="navbar__logo-text">SEEKEM</span>
         </Link>

@@ -47,6 +47,21 @@
   line-height: 1.15;
 }
 
+.auth-hero__brand-lockup {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.auth-hero__logo {
+  width: clamp(52px, 9vw, 72px);
+  height: clamp(52px, 9vw, 72px);
+  display: block;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 18px rgba(0, 61, 45, 0.14));
+}
+
 /* ══════════════════════════════════════════
    Auth Card
    ══════════════════════════════════════════ */

@@ -57,6 +57,11 @@ function AdminVerification() {
     });
   }, [reports, category, statusFilter, query]);
 
+  const categoryOptions = useMemo(() => {
+    const categories = [...new Set(reports.map((report) => report.category).filter(Boolean))];
+    return ['Semua Kategori', ...categories.sort((a, b) => a.localeCompare(b))];
+  }, [reports]);
+
   if (!isAdmin) return null;
 
   return (
@@ -77,10 +82,9 @@ function AdminVerification() {
         <section className="admin-filter-card">
           <label className="admin-select">
             <select value={category} onChange={(event) => setCategory(event.target.value)}>
-              <option>Semua Kategori</option>
-              <option>Elektronik</option>
-              <option>Dokumen</option>
-              <option>Lainnya</option>
+              {categoryOptions.map((option) => (
+                <option key={option}>{option}</option>
+              ))}
             </select>
             <ChevronDown size={16} />
           </label>
@@ -148,7 +152,7 @@ function AdminVerification() {
               </table>
 
               <footer className="admin-table-footer">
-                <span>Menampilkan 1-{filteredReports.length} dari {reports.length || 45} laporan</span>
+                <span>Menampilkan {filteredReports.length ? `1-${filteredReports.length}` : '0'} dari {reports.length} laporan</span>
                 <div className="admin-pagination">
                   <button aria-label="Halaman sebelumnya"><ChevronLeft size={15} /></button>
                   <button className="is-active">1</button>

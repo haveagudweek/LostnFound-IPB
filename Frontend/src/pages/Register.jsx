@@ -59,7 +59,10 @@ function Register() {
       {/* ── Hero heading above the card ── */}
       <div className="auth-hero">
         <h1 className="auth-hero__welcome">Selamat Datang di</h1>
-        <h2 className="auth-hero__brand">SEEKEM</h2>
+        <div className="auth-hero__brand-lockup">
+          <img src="/seekem-logo.png" alt="Logo SEEKEM" className="auth-hero__logo" />
+          <h2 className="auth-hero__brand">SEEKEM</h2>
+        </div>
       </div>
 
       {/* ── Card ── */}
