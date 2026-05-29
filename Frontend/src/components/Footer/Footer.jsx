@@ -1,4 +1,4 @@
-import { Package, MapPin, Mail, Phone, Globe, ExternalLink } from 'lucide-react';
+import { MapPin, Mail, Phone, Globe, ExternalLink } from 'lucide-react';
 import './Footer.css';
 
 function Footer() {
@@ -10,7 +10,7 @@ function Footer() {
           <div className="footer__brand">
             <div className="footer__logo">
               <div className="footer__logo-icon">
-                <Package size={20} />
+                <img src="/seekem-logo.png" alt="" className="footer__logo-img" />
               </div>
               <span className="footer__logo-text">SEEKEM</span>
             </div>

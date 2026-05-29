@@ -12,6 +12,7 @@ function AdminReportDetail() {
   const navigate = useNavigate();
   const { isAdmin } = useAuthStore();
   const addToast = useUIStore((state) => state.addToast);
+  const addNotification = useUIStore((state) => state.addNotification);
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
@@ -47,7 +48,19 @@ function AdminReportDetail() {
     try {
       const updated = await api.verifyReport(report.id, action);
       setReport(updated);
-      addToast(action === 'approve' ? 'Laporan berhasil diverifikasi.' : 'Laporan berhasil ditolak.', 'success');
+      const approved = action === 'approve';
+      addToast(approved ? 'Laporan berhasil diverifikasi.' : 'Laporan berhasil ditolak.', 'success');
+      if (updated.reporterId) {
+        addNotification({
+          title: approved ? 'Laporan sudah diverifikasi' : 'Laporan ditolak admin',
+          message: `${updated.name} ${approved ? 'sudah diverifikasi dan masuk katalog.' : 'tidak lolos verifikasi admin.'}`,
+          type: approved ? 'success' : 'error',
+          category: 'verification',
+          userId: updated.reporterId,
+          link: '/history',
+          showToast: false,
+        });
+      }
       navigate('/admin/verification');
     } catch (error) {
       addToast(error.message, 'error');

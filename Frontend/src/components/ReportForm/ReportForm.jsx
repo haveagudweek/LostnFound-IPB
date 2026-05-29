@@ -7,15 +7,34 @@ import { useAuthStore } from '../../store/authStore';
 import { ITEM_CATEGORIES } from '../../data/catalog';
 import './ReportForm.css';
 
+function toDatetimeLocalValue(date = new Date()) {
+  const offsetMs = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+}
+
+function formatReportDateTime(value) {
+  if (!value) return '';
+
+  return new Intl.DateTimeFormat('id-ID', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value));
+}
+
 function ReportForm({ type }) {
   const isFound = type === 'found';
   const navigate = useNavigate();
   const addToast = useUIStore((state) => state.addToast);
+  const addNotification = useUIStore((state) => state.addNotification);
   const user = useAuthStore((state) => state.user);
   
   const title = isFound ? 'Laporkan Barang Temuan' : 'Laporkan Barang Hilang';
   const locationLabel = isFound ? 'TEMPAT DITEMUKAN' : 'TERAKHIR DILIHAT SEKITAR';
-  const timeLabel = isFound ? 'WAKTU DITEMUKAN' : 'PERKIRAAN WAKTU/HARI';
+  const timeLabel = isFound ? 'TANGGAL & WAKTU DITEMUKAN' : 'PERKIRAAN TANGGAL & WAKTU';
+  const maxDateTime = toDatetimeLocalValue();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -36,8 +55,21 @@ function ReportForm({ type }) {
   const handleImageChange = (e) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      const url = URL.createObjectURL(file);
-      setFormData(prev => ({ ...prev, image: url, file: file }));
+
+      if (file.size > 5 * 1024 * 1024) {
+        addToast('Ukuran foto maksimal 5MB.', 'error');
+        e.target.value = '';
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        setFormData(prev => ({ ...prev, image: reader.result }));
+      };
+      reader.onerror = () => {
+        addToast('Gagal membaca file foto.', 'error');
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -45,9 +77,22 @@ function ReportForm({ type }) {
     e.preventDefault();
     setLoading(true);
     try {
-      await api.reportItem({ ...formData, reporterId: user?.id }, type);
-      addToast('Laporan berhasil dikirim dan menunggu verifikasi admin.', 'success');
-      navigate('/');
+      const report = await api.reportItem({
+        ...formData,
+        time: formatReportDateTime(formData.time),
+        reporterId: user?.id,
+        reporterName: user?.name,
+        reporterNim: user?.nim,
+      }, type);
+      addNotification({
+        title: 'Laporan berhasil dibuat',
+        message: `${report.name} sudah dikirim dan menunggu verifikasi admin.`,
+        type: 'success',
+        category: 'report',
+        userId: user?.id,
+        link: '/history',
+      });
+      navigate('/history');
     } catch (error) {
       addToast(error.message, 'error');
     } finally {
@@ -124,11 +169,11 @@ function ReportForm({ type }) {
               <div className="report-form__input-wrapper">
                 <Calendar size={18} className="report-form__input-icon" />
                 <input 
-                  type="text" 
+                  type="datetime-local" 
                   name="time"
                   className="report-form__input report-form__input--with-icon" 
-                  placeholder="Contoh: Hari ini, 14:00" 
                   value={formData.time}
+                  max={maxDateTime}
                   onChange={handleChange}
                   required 
                 />

@@ -37,14 +37,11 @@ function SearchResults() {
   /* ── Pagination ── */
   const [currentPage, setCurrentPage] = useState(1);
 
-  if (categoryState.param !== categoryParam) {
-    setCategoryState({
-      param: categoryParam,
-      categories: categoryParam ? [categoryParam] : [],
-    });
-  }
-
-  const selectedCategories = categoryState.categories;
+  const selectedCategories = useMemo(() => (
+    categoryState.param === categoryParam
+      ? categoryState.categories
+      : categoryParam ? [categoryParam] : []
+  ), [categoryParam, categoryState]);
 
   /* ── Fetch items whenever query changes ── */
   useEffect(() => {
@@ -112,9 +109,11 @@ function SearchResults() {
 
   /* ── Pagination logic ── */
   const totalPages = Math.max(1, Math.ceil(filteredItems.length / ITEMS_PER_PAGE));
+  const activePage = Math.min(currentPage, totalPages);
+
   const paginatedItems = filteredItems.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
+    (activePage - 1) * ITEMS_PER_PAGE,
+    activePage * ITEMS_PER_PAGE
   );
 
   /* ── Event handlers ── */
@@ -154,8 +153,8 @@ function SearchResults() {
       for (let i = 1; i <= totalPages; i++) pages.push(i);
     } else {
       pages.push(1, 2, 3);
-      if (currentPage > 3 && currentPage < totalPages) {
-        pages.push('...', currentPage);
+      if (activePage > 3 && activePage < totalPages) {
+        pages.push('...', activePage);
       } else {
         pages.push('...');
       }
@@ -316,8 +315,8 @@ function SearchResults() {
                   <nav className="sr-pagination" id="search-pagination" aria-label="Pagination">
                     <button
                       className="sr-pagination__arrow"
-                      disabled={currentPage === 1}
-                      onClick={() => goToPage(currentPage - 1)}
+                      disabled={activePage === 1}
+                      onClick={() => goToPage(activePage - 1)}
                       aria-label="Halaman sebelumnya"
                     >
                       <ChevronLeft size={18} />
@@ -331,7 +330,7 @@ function SearchResults() {
                       ) : (
                         <button
                           key={page}
-                          className={`sr-pagination__page ${currentPage === page ? 'sr-pagination__page--active' : ''}`}
+                          className={`sr-pagination__page ${activePage === page ? 'sr-pagination__page--active' : ''}`}
                           onClick={() => goToPage(page)}
                         >
                           {page}
@@ -341,8 +340,8 @@ function SearchResults() {
 
                     <button
                       className="sr-pagination__arrow"
-                      disabled={currentPage === totalPages}
-                      onClick={() => goToPage(currentPage + 1)}
+                      disabled={activePage === totalPages}
+                      onClick={() => goToPage(activePage + 1)}
                       aria-label="Halaman selanjutnya"
                     >
                       <ChevronRight size={18} />

@@ -10,6 +10,7 @@ function ContactReporter() {
   const { id } = useParams();
   const navigate = useNavigate();
   const addToast = useUIStore((state) => state.addToast);
+  const addNotification = useUIStore((state) => state.addNotification);
   const user = useAuthStore((state) => state.user);
   
   const [item, setItem] = useState(null);
@@ -24,9 +25,15 @@ function ContactReporter() {
     async function fetchItem() {
       try {
         const data = await api.getItemById(id);
+        if (data.postingStatus === 'held') {
+          throw new Error('Barang ini sedang ditahan admin dan belum tampil untuk publik.');
+        }
+        if (data.claimStatus === 'claimed') {
+          throw new Error('Barang ini sudah diklaim dan tidak menerima pesan baru.');
+        }
         setItem(data);
-      } catch {
-        addToast('Barang tidak ditemukan.', 'error');
+      } catch (error) {
+        addToast(error.message || 'Barang tidak ditemukan.', 'error');
         navigate(-1);
       } finally {
         setLoading(false);
@@ -64,7 +71,14 @@ function ContactReporter() {
     try {
       await api.sendMessage(id, composedMessage);
       setSubmitting(false);
-      addToast('Pesan berhasil terkirim. Kontak Anda akan diteruskan ke pihak terkait.', 'success');
+      addNotification({
+        title: 'Pesan berhasil dikirim',
+        message: `Pesan terkait ${item.name} sudah diteruskan ke pelapor.`,
+        type: 'success',
+        category: 'message',
+        userId: user?.id,
+        link: `/item/${id}`,
+      });
       navigate(`/item/${id}`);
     } catch (error) {
       addToast(error.message, 'error');

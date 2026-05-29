@@ -164,6 +164,7 @@
 }
 
 .profile-actions__secondary {
+  gap: 8px;
   padding: 0 16px;
   color: var(--color-primary-800);
   background: var(--color-primary-50);

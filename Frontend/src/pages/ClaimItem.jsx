@@ -11,6 +11,7 @@ function ClaimItem() {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const addToast = useUIStore((state) => state.addToast);
+  const addNotification = useUIStore((state) => state.addNotification);
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -30,6 +31,15 @@ function ClaimItem() {
       setLoading(true);
       try {
         const data = await api.getItemById(id);
+        if (data.status !== 'found') {
+          throw new Error('Klaim hanya tersedia untuk barang yang ditemukan.');
+        }
+        if (data.postingStatus === 'held') {
+          throw new Error('Barang ini sedang ditahan admin dan belum bisa diklaim.');
+        }
+        if (data.claimStatus === 'claimed') {
+          throw new Error('Barang ini sudah diklaim dan disetujui admin.');
+        }
         if (!cancelled) setItem(data);
       } catch (error) {
         addToast(error.message, 'error');
@@ -77,8 +87,9 @@ function ClaimItem() {
 
     setSubmitting(true);
     try {
-      await api.createClaim({
+      const claim = await api.createClaim({
         itemId: item.id,
+        userId: user?.id,
         ownerName: formData.ownerName,
         nim: formData.nim,
         faculty: formData.faculty,
@@ -86,7 +97,14 @@ function ClaimItem() {
         description: formData.description,
         evidenceImage: formData.evidenceImage,
       });
-      addToast('Klaim berhasil dikirim dan menunggu verifikasi admin.', 'success');
+      addNotification({
+        title: 'Klaim berhasil dikirim',
+        message: `Klaim untuk ${claim.itemName} sudah masuk dan menunggu verifikasi admin.`,
+        type: 'success',
+        category: 'claim',
+        userId: user?.id,
+        link: '/history',
+      });
       navigate(`/item/${item.id}`);
     } catch (error) {
       addToast(error.message, 'error');

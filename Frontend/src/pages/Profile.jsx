@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { BadgeCheck, FileText, IdCard, Mail, UserRound } from 'lucide-react';
+import { BadgeCheck, FileText, History, IdCard, Mail, UserRound } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useUIStore } from '../store/uiStore';
 import './Profile.css';
@@ -88,8 +88,9 @@ function Profile() {
               <FileText size={18} />
               <span>Lapor Barang</span>
             </Link>
-            <Link to="/" className="profile-actions__secondary">
-              Kembali ke Beranda
+            <Link to="/history" className="profile-actions__secondary">
+              <History size={18} />
+              <span>Riwayat Saya</span>
             </Link>
           </div>
         </section>

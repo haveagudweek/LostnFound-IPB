@@ -1,6 +1,7 @@
 import { Navigate, Routes, Route, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar/Navbar';
 import Footer from './components/Footer/Footer';
+import PagePattern from './components/PagePattern/PagePattern';
 import Dashboard from './pages/Dashboard';
 import ReportSelection from './pages/ReportSelection';
 import ReportLost from './pages/ReportLost';
@@ -17,9 +18,12 @@ import CategoriesPage from './pages/CategoriesPage';
 import ItemDetail from './pages/ItemDetail';
 import ContactReporter from './pages/ContactReporter';
 import ClaimItem from './pages/ClaimItem';
+import History from './pages/History';
+import Notifications from './pages/Notifications';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminVerification from './pages/AdminVerification';
 import AdminReportDetail from './pages/AdminReportDetail';
+import AdminPostedItems from './pages/AdminPostedItems';
 import AdminClaims from './pages/AdminClaims';
 import AdminClaimDetail from './pages/AdminClaimDetail';
 import { useAuthStore } from './store/authStore';
@@ -70,6 +74,7 @@ function App() {
 
   return (
     <div className="app" id="app">
+      <PagePattern />
       {!hideChrome && <Navbar />}
       <Routes>
         <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
@@ -84,6 +89,8 @@ function App() {
         <Route path="/item/:id" element={<ProtectedRoute><ItemDetail /></ProtectedRoute>} />
         <Route path="/contact/:id" element={<ProtectedRoute><ContactReporter /></ProtectedRoute>} />
         <Route path="/claim/:id" element={<ProtectedRoute><ClaimItem /></ProtectedRoute>} />
+        <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
+        <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
         
         <Route path="/report" element={<ProtectedRoute><ReportSelection /></ProtectedRoute>} />
         <Route path="/report/lost" element={<ProtectedRoute><ReportLost /></ProtectedRoute>} />
@@ -92,6 +99,7 @@ function App() {
         <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
         <Route path="/admin/verification" element={<AdminRoute><AdminVerification /></AdminRoute>} />
         <Route path="/admin/verification/:id" element={<AdminRoute><AdminReportDetail /></AdminRoute>} />
+        <Route path="/admin/items" element={<AdminRoute><AdminPostedItems /></AdminRoute>} />
         <Route path="/admin/claims" element={<AdminRoute><AdminClaims /></AdminRoute>} />
         <Route path="/admin/claims/:id" element={<AdminRoute><AdminClaimDetail /></AdminRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />

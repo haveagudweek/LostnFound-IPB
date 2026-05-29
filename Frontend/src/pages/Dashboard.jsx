@@ -4,6 +4,7 @@ import SearchSection from '../components/SearchSection/SearchSection';
 import HowItWorks from '../components/HowItWorks/HowItWorks';
 import ItemSection from '../components/ItemSection/ItemSection';
 import { api } from '../services/api';
+import './Dashboard.css';
 
 function Dashboard() {
   const [foundItems, setFoundItems] = useState([]);
@@ -24,7 +25,7 @@ function Dashboard() {
         ]);
 
         if (!cancelled) {
-          setFoundItems(foundData.slice(0, 5));
+          setFoundItems(foundData.slice(0, 4));
           setLostItems(lostData.slice(0, 4));
         }
       } catch {
