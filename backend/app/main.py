@@ -3,7 +3,7 @@ from app.cores.database import engine
 from app.models.base import Base
 # Import all models here to ensure they are registered with Base before create_all
 from app.models import user, laporan, klaim, notifikasi
-from app.api import auth, laporan as laporan_api, klaim as klaim_api, notifikasi as notifikasi_api
+from app.api import auth, laporan as laporan_api, klaim as klaim_api, notifikasi as notifikasi_api, admin_dashboard as admin_dashboard_api
 
 # Buat tabel di database jika belum ada
 Base.metadata.create_all(bind=engine)
@@ -20,6 +20,7 @@ app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(laporan_api.router, prefix="/api/laporan", tags=["laporan"])
 app.include_router(klaim_api.router, prefix="/api/klaim", tags=["klaim"])
 app.include_router(notifikasi_api.router, prefix="/api/notifikasi", tags=["notifikasi"])
+app.include_router(admin_dashboard_api.router, prefix="/api/admin/dashboard", tags=["admin_dashboard"])
 
 # Route dasar untuk testing
 @app.get("/")

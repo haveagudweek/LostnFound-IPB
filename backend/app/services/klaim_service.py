@@ -52,6 +52,13 @@ class KlaimService:
             .order_by(Klaim.tanggal_klaim.asc()).offset(skip).limit(limit).all()
 
     @staticmethod
+    def search_klaims(db: Session, skip: int = 0, limit: int = 100, status_klaim: StatusKlaim = None) -> list[Klaim]:
+        query = db.query(Klaim)
+        if status_klaim:
+            query = query.filter(Klaim.status_klaim == status_klaim)
+        return query.order_by(Klaim.tanggal_klaim.desc()).offset(skip).limit(limit).all()
+
+    @staticmethod
     def verify_klaim(db: Session, klaim_id: int, is_approved: bool) -> Klaim:
         klaim = db.query(Klaim).filter(Klaim.id == klaim_id).first()
         if not klaim:
