@@ -88,7 +88,7 @@ function App() {
         <Route path="/search" element={<ProtectedRoute><SearchResults /></ProtectedRoute>} />
         <Route path="/categories" element={<ProtectedRoute><CategoriesPage /></ProtectedRoute>} />
         <Route path="/item/:id" element={<ProtectedRoute><ItemDetail /></ProtectedRoute>} />
-        <Route path="/contact/:id" element={<ProtectedRoute><ContactReporter /></ProtectedRoute>} />
+        <Route path="/laporan/:id/hubungi" element={<ProtectedRoute><ContactReporter /></ProtectedRoute>} />
         <Route path="/claim/:id" element={<ProtectedRoute><ClaimItem /></ProtectedRoute>} />
         <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
         <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />

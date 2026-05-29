@@ -22,8 +22,9 @@ function ClaimItem() {
     faculty: '',
     contact: '',
     description: '',
-    evidenceImage: '',
+    evidenceImage: null,
   });
+  const [evidencePreview, setEvidencePreview] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -66,11 +67,8 @@ function ClaimItem() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      setFormData((prev) => ({ ...prev, evidenceImage: reader.result }));
-    };
-    reader.readAsDataURL(file);
+    setFormData((prev) => ({ ...prev, evidenceImage: file }));
+    setEvidencePreview(URL.createObjectURL(file));
   };
 
   const handleSubmit = async (event) => {
@@ -192,10 +190,13 @@ function ClaimItem() {
             <span>Bukti Serah Terima Barang *</span>
             {formData.evidenceImage ? (
               <div className="claim-evidence-preview">
-                <img src={formData.evidenceImage} alt="Bukti kepemilikan" />
+                <img src={evidencePreview} alt="Bukti kepemilikan" />
                 <button
                   type="button"
-                  onClick={() => setFormData((prev) => ({ ...prev, evidenceImage: '' }))}
+                  onClick={() => {
+                    setFormData((prev) => ({ ...prev, evidenceImage: null }));
+                    setEvidencePreview('');
+                  }}
                   aria-label="Hapus bukti"
                 >
                   <X size={16} />
