@@ -135,6 +135,12 @@ export const api = {
     if (user?.nim) params.set('nim', user.nim);
     return request(`/history?${params.toString()}`);
   },
+  
+  // --- NOTIFIKASI ---
+  getNotifications: () => request('/notifikasi'),
+  markNotificationRead: (id) => request(`/notifikasi/${id}/read`, { method: 'PATCH' }),
+  markAllNotificationsRead: () => request('/notifikasi/read-all', { method: 'PATCH' }),
+
   getVerificationReports: () => request('/admin/verification'),
   getVerificationReportById: (id) => request(`/admin/verification/${id}`),
   verifyReport: (id, action) => request(`/admin/verification/${id}`, {

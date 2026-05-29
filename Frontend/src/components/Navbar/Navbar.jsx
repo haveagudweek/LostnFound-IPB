@@ -3,6 +3,7 @@ import { Search, Bell, HelpCircle, Plus, Menu, LogOut, User, LogIn, UserPlus, Ch
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useUIStore } from '../../store/uiStore';
+import { api } from '../../services/api';
 import './Navbar.css';
 
 const navLinks = [
@@ -36,11 +37,42 @@ function Navbar() {
   const addToast = useUIStore((state) => state.addToast);
   const notifications = useUIStore((state) => state.notifications);
   const markNotificationRead = useUIStore((state) => state.markNotificationRead);
-  const userNotifications = notifications.filter((notification) =>
-    !notification.userId || notification.userId === user?.id
-  );
+  const setNotifications = useUIStore((state) => state.setNotifications);
+  
+  // Karena backend sekarang menyimpan notifikasi per user, kita tidak perlu memfilter by userId lagi,
+  // namun kita pertahankan agar konsisten dengan fallback
+  const userNotifications = notifications;
   const latestNotifications = userNotifications.slice(0, 3);
   const unreadNotifications = userNotifications.filter((notification) => !notification.read).length;
+
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchNotifs() {
+      if (!isAuthenticated) return;
+      try {
+        const data = await api.getNotifications();
+        if (cancelled) return;
+        
+        // Map data dari Backend ke format Frontend
+        const mappedNotifs = data.map(n => ({
+          id: n.id,
+          title: n.tipe === 'SUCCESS' ? 'Berhasil' : n.tipe === 'WARNING' ? 'Peringatan' : 'Informasi',
+          message: n.pesan,
+          type: n.tipe.toLowerCase(),
+          category: 'system', // Default kategori backend
+          createdAt: n.tanggal_kirim,
+          read: n.is_read
+        }));
+        
+        setNotifications(mappedNotifs);
+      } catch (error) {
+        console.error('Failed to fetch notifications:', error);
+      }
+    }
+    
+    fetchNotifs();
+    return () => { cancelled = true; };
+  }, [isAuthenticated, setNotifications]);
 
   /* ── Profile dropdown state ── */
   const [profileOpen, setProfileOpen] = useState(false);
@@ -93,8 +125,13 @@ function Navbar() {
 
   const closeMobileMenu = () => setMobileOpen(false);
 
-  const handleNotificationClick = (notification) => {
-    markNotificationRead(notification.id);
+  const handleNotificationClick = async (notification) => {
+    try {
+      await api.markNotificationRead(notification.id);
+      markNotificationRead(notification.id);
+    } catch (e) {
+      console.error(e);
+    }
     setNotificationsOpen(false);
     if (notification.link) {
       navigate(notification.link);

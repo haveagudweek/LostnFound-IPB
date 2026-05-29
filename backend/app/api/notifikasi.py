@@ -25,6 +25,23 @@ def get_my_notifikasi(
         .all()
     return notifikasis
 
+@router.patch("/read-all")
+def mark_all_notifikasi_as_read(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Menandai seluruh notifikasi milik current_user sebagai telah dibaca secara efisien.
+    """
+    db.query(Notifikasi)\
+        .filter(Notifikasi.user_id == current_user.id)\
+        .filter(Notifikasi.is_read == False)\
+        .update({"is_read": True})
+        
+    db.commit()
+    
+    return {"status": "success", "message": "Semua notifikasi ditandai sudah dibaca"}
+
 @router.patch("/{notifikasi_id}/read")
 def mark_notifikasi_as_read(
     notifikasi_id: int,

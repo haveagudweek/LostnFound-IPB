@@ -10,6 +10,7 @@ export const useUIStore = create(
       notifications: [],
       confirmation: null,
       isLoading: false,
+      setNotifications: (notifications) => set({ notifications }),
       addToast: (message, type = 'info') => {
         const id = createNotificationId();
         set((state) => ({ toasts: [...state.toasts, { id, message, type }] }));
@@ -94,7 +95,7 @@ export const useUIStore = create(
     }),
     {
       name: 'seekem-ui',
-      partialize: (state) => ({ notifications: state.notifications }),
+      partialize: (state) => ({}),
     }
   )
 );

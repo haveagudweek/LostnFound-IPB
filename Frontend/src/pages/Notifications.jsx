@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useUIStore } from '../store/uiStore';
+import { api } from '../services/api';
 import './Notifications.css';
 
 const notificationMeta = {
@@ -47,13 +48,17 @@ function Notifications() {
   const markAllNotificationsRead = useUIStore((state) => state.markAllNotificationsRead);
   const requestConfirmation = useUIStore((state) => state.requestConfirmation);
 
-  const userNotifications = notifications.filter((notification) =>
-    !notification.userId || notification.userId === user?.id
-  );
+  const userNotifications = notifications;
   const unreadCount = userNotifications.filter((notification) => !notification.read).length;
 
-  const openNotification = (notification) => {
-    markNotificationRead(notification.id);
+  const openNotification = async (notification) => {
+    try {
+      await api.markNotificationRead(notification.id);
+      markNotificationRead(notification.id);
+    } catch (e) {
+      console.error('Gagal menandai notifikasi', e);
+    }
+    
     if (notification.link) {
       navigate(notification.link);
     }
@@ -70,7 +75,12 @@ function Notifications() {
       return;
     }
 
-    markAllNotificationsRead(user?.id);
+    try {
+      await api.markAllNotificationsRead();
+      markAllNotificationsRead(user?.id);
+    } catch (e) {
+      console.error('Gagal menandai semua notifikasi', e);
+    }
   };
 
   return (

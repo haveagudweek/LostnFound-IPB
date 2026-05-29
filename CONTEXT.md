@@ -4,11 +4,12 @@
 
 SEEKEM adalah platform berbasis web untuk memfasilitasi pelaporan dan pencarian barang hilang/ditemukan di lingkungan kampus IPB University. Sistem ini menggunakan arsitektur **Hybrid P2P (Peer-to-Peer dengan Admin Verifikator)**. Interaksi serah terima fisik dilakukan mandiri oleh pengguna, namun sistem bertindak sebagai verifikator kepemilikan sebelum kontak privasi dibuka.
 
-> **STATUS PROYEK (29 Mei 2026):**
+> **STATUS PROYEK (30 Mei 2026):**
 > 1. Sinkronisasi Frontend & Backend telah mencapai **100%**. Semua rute (`/items`, `/history`, `/admin`, `/contact`) telah terhubung secara native ke PostgreSQL (Railway). Mock API telah dihapus sepenuhnya dari Frontend.
 > 2. Cloudinary terintegrasi untuk penyimpanan gambar via `UploadService`.
-> 3. Otentikasi dan Proteksi JWT telah diterapkan. Fitur CORS dibuka untuk `localhost:5173`.
-> 4. **Tugas Tersisa:** Integrasi API Fitur Notifikasi di Frontend. (Saat ini Backend endpoint `/api/notifikasi` sudah selesai dan tersambung ke database, namun Frontend `Notifications.jsx` masih menggunakan data lokal/Zustand mock. Butuh dihubungkan menggunakan `api.js`).
+> 3. Otentikasi dan Proteksi JWT (RBAC) telah diterapkan dengan ketat. Fitur CORS dibuka untuk `localhost:5173`.
+> 4. **Integrasi SMTP (Email):** Fitur pengiriman pesan langsung (P2P) antara penemu dan pemilik barang telah sepenuhnya berfungsi menggunakan `EmailService` yang mengirimkan format email dinamis ("Barang Ditemukan" vs "Barang Hilang").
+> 5. **Tugas Tersisa:** Integrasi API Fitur Notifikasi di Frontend. (Saat ini Backend endpoint `/api/notifikasi` sudah selesai dan tersambung ke database, namun Frontend `Notifications.jsx` masih menggunakan data lokal/Zustand mock. Butuh dihubungkan menggunakan `api.js`).
 
 ## 2. Tech Stack & Infrastructure
 
@@ -53,10 +54,10 @@ Semua field yang memiliki pilihan terbatas wajib diimplementasikan menggunakan c
 **C. Data Transfer Objects / DTOs (Pydantic Classes):**
 Digunakan untuk enkapsulasi dan validasi payload dari/ke Frontend (khusus untuk endpoint non-multipart seperti Auth).
 
-- `UserLoginSchema`, `UserResponseSchema`, dll.
+- `UserLoginSchema`, `UserResponseSchema`, `EmailSchema`, dll.
 
 **D. Business Logic (Service Classes):**
-Logika pemrosesan data dienkapsulasi dalam Service Class (`AuthService`, `LaporanService`, `KlaimService`, `DashboardService`).
+Logika pemrosesan data dienkapsulasi dalam Service Class (`AuthService`, `LaporanService`, `KlaimService`, `DashboardService`, `EmailService`, `UploadService`).
 
 ## 5. Critical Business Logic, App Flow & Required Endpoints
 
@@ -72,12 +73,13 @@ Logika pemrosesan data dienkapsulasi dalam Service Class (`AuthService`, `Lapora
 3. **Verifikasi Admin:**
    - Reject: Status klaim di-reject, status laporan kembali `Published`.
    - Approve: Status klaim di-approve. Sistem otomatis melakukan insert data ke tabel Notifikasi untuk memberitahu pengklaim.
-4. **Post-Approval:** Pada endpoint detail klaim (`GET /klaim/{id}`), jika status disetujui, sistem membuka field `nomor_telepon` pelapor kepada pengklaim untuk serah terima P2P.
-5. **Penyelesaian:** Admin/User memicu endpoint untuk mengubah status laporan menjadi `Resolved`.
+4. **Kontak Pelapor via SMTP (`POST /api/laporan/{id}/hubungi`):** Jika pelapor bukan entitas instansi (seseorang), pencari/pengklaim dapat langsung mengirimkan pesan (P2P). Sistem menggunakan `EmailService` untuk mengirimkan email otomatis ke alamat pelapor. Format dan *subject* email disesuaikan secara dinamis bergantung apakah itu "Barang Hilang" atau "Temuan".
+5. **Post-Approval:** Pada endpoint detail klaim (`GET /klaim/{id}`), jika status disetujui, sistem membuka field `nomor_telepon` pelapor kepada pengklaim untuk serah terima fisik secara aman.
+6. **Penyelesaian:** Admin/User memicu endpoint untuk mengubah status laporan menjadi `Resolved`.
 
 ### C. Modul Dasbor & Riwayat
 
-- **Dasbor Admin (`GET /admin/stats`):** Mengembalikan data agregasi secara efisien menggunakan `func.count()` SQLAlchemy.
+- **Dasbor Admin (`GET /admin/stats`):** Mengembalikan data agregasi secara efisien menggunakan `func.count()` SQLAlchemy. Frontend WAJIB menggunakan endpoint ini secara langsung alih-alih mengunduh seluruh data (getVerificationReports, getClaims) untuk dihitung manual.
 - **Riwayat User (`GET /users/me/riwayat`):** Menampilkan daftar laporan dan klaim milik user yang sedang login menggunakan identifikasi token JWT.
 
 ## 6. AI Development Guidelines
@@ -89,3 +91,4 @@ Logika pemrosesan data dienkapsulasi dalam Service Class (`AuthService`, `Lapora
 - **Aturan RBAC Ketat (Role-Based Access Control):** 
   - **Admin Bukan Pengguna:** Admin secara eksplisit **dilarang** membuat laporan (`POST /api/items/report`) maupun mengklaim barang (`POST /api/items/{id}/claims`). Sistem harus memblokir Admin di lapisan Frontend (menyembunyikan tombol) dan Backend (melemparkan `HTTP 403 Forbidden`).
   - **Isolasi Rute Admin:** Segala *endpoint* di bawah berkas `admin.py` atau berawalan rute `/api/admin/` WAJIB dijaga menggunakan dependensi `get_current_active_admin`. Jangan mencampuradukkan fitur civitas awam di dalam rute admin.
+- **Analitik & Dasbor:** Semua proses agregasi data (penghitungan jumlah, statistik, *group by* kategori) **wajib** dilakukan di tingkat *Database* (Backend) melalui `DashboardService`. Frontend dilarang keras melakukan manipulasi *array* secara massal hanya untuk membuat laporan statistik.
