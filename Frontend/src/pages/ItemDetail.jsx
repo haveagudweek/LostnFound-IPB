@@ -69,7 +69,6 @@ function ItemDetail() {
     (item.reporterId && item.reporterId === user?.id)
     || (normalizedReporter && normalizedUser && normalizedReporter === normalizedUser)
   );
-  const isAdmin = user?.role === 'admin';
   const canClaim = isFound && !isClaimed && !isOwnReport && !isAdmin;
   const canConfirmClaimed = !isFound && isOwnReport && !isClaimed && !isAdmin;
   const canContactReporter = !isOwnReport && !isAdmin;
