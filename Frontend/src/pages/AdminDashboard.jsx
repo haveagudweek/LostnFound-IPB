@@ -54,10 +54,16 @@ function formatActivityTime(value, baseTime) {
 function AdminDashboard() {
   const navigate = useNavigate();
   const { isAdmin } = useAuthStore();
-  const [reports, setReports] = useState([]);
-  const [claims, setClaims] = useState([]);
-  const [items, setItems] = useState([]);
-  const [dashboardNow] = useState(() => Date.now());
+  const [stats, setStats] = useState({
+    totalReports: 0,
+    verifiedReports: 0,
+    pendingReports: 0,
+    claimedItems: 0,
+    pendingClaims: 0,
+  });
+  const [categoryRows, setCategoryRows] = useState([{ label: 'Belum ada data', count: 0, value: 0 }]);
+  const [chartBars, setChartBars] = useState([]);
+  const [recentActivities, setRecentActivities] = useState([]);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -67,16 +73,62 @@ function AdminDashboard() {
 
     let cancelled = false;
     async function fetchDashboard() {
-      const [reportData, claimData, itemData] = await Promise.all([
-        api.getVerificationReports(),
-        api.getClaims(),
-        api.getPostedItems(),
-      ]);
+      try {
+        const data = await api.getDashboardStats();
+        if (cancelled) return;
 
-      if (!cancelled) {
-        setReports(reportData);
-        setClaims(claimData);
-        setItems(itemData);
+        setStats({
+          totalReports: data.total_laporan || 0,
+          verifiedReports: data.total_diverifikasi || 0,
+          pendingReports: data.total_pending || 0,
+          claimedItems: data.total_klaim_masuk || 0, // Disesuaikan dari klaim disetujui jika ada
+          pendingClaims: data.total_klaim_masuk || 0,
+        });
+
+        // 1. Map Kategori
+        if (data.distribusi_kategori && data.distribusi_kategori.length > 0) {
+          const totalCat = data.distribusi_kategori.reduce((acc, cat) => acc + cat.count, 0);
+          setCategoryRows(
+            data.distribusi_kategori.map((cat) => ({
+              label: cat.kategori,
+              count: cat.count,
+              value: totalCat > 0 ? Math.round((cat.count / totalCat) * 100) : 0,
+            }))
+          );
+        } else {
+          setCategoryRows([{ label: 'Belum ada data', count: 0, value: 0 }]);
+        }
+
+        // 2. Map Traffic (7 hari terakhir)
+        if (data.traffic_laporan && data.traffic_laporan.length > 0) {
+          const maxTraffic = Math.max(...data.traffic_laporan.map((t) => t.laporan_masuk), 1);
+          setChartBars(
+            data.traffic_laporan.map((t) => ({
+              count: t.laporan_masuk,
+              height: Math.max(12, Math.round((t.laporan_masuk / maxTraffic) * 100)),
+              date: t.tanggal,
+            }))
+          );
+        } else {
+          setChartBars(Array.from({ length: 7 }, () => ({ count: 0, height: 12 })));
+        }
+
+        // 3. Map Recent Activities
+        if (data.recent_activities) {
+          setRecentActivities(
+            data.recent_activities.map((act) => ({
+              id: `act-${act.id}-${Math.random()}`,
+              icon: act.tipe === 'Klaim' ? ShieldCheck : FileText,
+              text: act.pesan,
+              meta: `${act.waktu}`,
+              badge: act.tipe,
+              tone: statusTone[act.status] || 'neutral',
+              link: act.tipe === 'Klaim' ? `/admin/claims/${act.id}` : `/admin/verification/${act.id}`,
+            }))
+          );
+        }
+      } catch (error) {
+        console.error('Failed to load dashboard stats:', error);
       }
     }
 
@@ -85,120 +137,6 @@ function AdminDashboard() {
       cancelled = true;
     };
   }, [isAdmin, navigate]);
-
-  const stats = useMemo(() => {
-    const verifiedReports = reports.filter((report) => report.status === 'verified').length;
-    const pendingReports = reports.filter((report) => report.status === 'pending_verification').length;
-    const claimedItems = new Set(claims
-      .filter((claim) => claim.status === 'approved')
-      .map((claim) => claim.itemId || claim.itemName)
-    );
-    items
-      .filter((item) => item.claimStatus === 'claimed')
-      .forEach((item) => claimedItems.add(item.id));
-    const pendingClaims = claims.filter((claim) => claim.status === 'pending').length;
-
-    return {
-      totalReports: reports.length,
-      verifiedReports,
-      pendingReports,
-      claimedItems: claimedItems.size,
-      pendingClaims,
-    };
-  }, [reports, claims, items]);
-
-  const categoryStats = useMemo(() => {
-    const source = [...reports, ...items];
-    const total = Math.max(source.length, 1);
-    const counts = source.reduce((acc, item) => {
-      const category = item.category || 'Lainnya';
-      acc[category] = (acc[category] || 0) + 1;
-      return acc;
-    }, {});
-
-    return Object.entries(counts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 6)
-      .map(([label, count]) => ({
-        label,
-        count,
-        value: Math.round((count / total) * 100),
-      }));
-  }, [reports, items]);
-
-  const chartBars = useMemo(() => {
-    const source = [...reports, ...claims];
-    const counts = Array.from({ length: 7 }, () => 0);
-
-    source.forEach((entry) => {
-      const timestamp = parseLooseDate(entry.reportTime || entry.claimDate || entry.time, dashboardNow);
-      if (!timestamp) return;
-
-      const age = Math.floor((dashboardNow - timestamp) / 86400000);
-      if (age >= 0 && age < 7) {
-        counts[6 - age] += 1;
-      }
-    });
-
-    if (!counts.some(Boolean)) {
-      source.slice(0, 7).forEach((_, index) => {
-        counts[index] += 1;
-      });
-    }
-
-    const max = Math.max(...counts, 1);
-    return counts.map((count) => ({
-      count,
-      height: Math.max(12, Math.round((count / max) * 100)),
-    }));
-  }, [reports, claims, dashboardNow]);
-
-  const recentActivities = useMemo(() => {
-    const reportActivities = reports.map((report) => ({
-      id: `report-${report.id}`,
-      icon: FileText,
-      timestamp: parseLooseDate(report.reportTime || report.time, dashboardNow),
-      text: `${report.reporterName || 'Pelapor'} membuat laporan ${report.tag?.toLowerCase() || 'barang'}: ${report.name}.`,
-      meta: `${formatActivityTime(report.reportTime || report.time, dashboardNow)} - Ref: ${report.id}`,
-      badge: statusLabel[report.status] || report.tag || 'Laporan',
-      tone: statusTone[report.status] || 'gray',
-      link: `/admin/verification/${report.id}`,
-    }));
-
-    const claimActivities = claims.map((claim) => ({
-      id: `claim-${claim.id}`,
-      icon: claim.status === 'approved' ? CheckCircle2 : ShieldCheck,
-      timestamp: parseLooseDate(claim.claimDate, dashboardNow),
-      text: `${claim.ownerName || 'Pengguna'} mengirim klaim untuk ${claim.itemName}.`,
-      meta: `${formatActivityTime(claim.claimDate, dashboardNow)} - Ref: ${claim.id}`,
-      badge: statusLabel[claim.status] || 'Klaim',
-      tone: statusTone[claim.status] || 'gray',
-      link: `/admin/claims/${claim.id}`,
-    }));
-
-    const itemActivities = items.map((item) => ({
-      id: `item-${item.id}`,
-      icon: item.claimStatus === 'claimed' ? CheckCircle2 : (item.status === 'found' ? PackageCheck : RotateCcw),
-      timestamp: parseLooseDate(item.time, dashboardNow),
-      text: item.claimStatus === 'claimed'
-        ? `${item.name} sudah diklaim oleh ${item.claimantName || 'pemilik'}.`
-        : `${item.name} masuk katalog barang ${item.status === 'found' ? 'ditemukan' : 'hilang'}.`,
-      meta: `${formatActivityTime(item.time, dashboardNow)} - Ref: ${item.id}`,
-      badge: item.claimStatus === 'claimed' ? 'Claimed' : (item.status === 'found' ? 'Ditemukan' : 'Hilang'),
-      tone: item.claimStatus === 'claimed' ? 'green' : (statusTone[item.status] || 'gray'),
-      link: `/item/${item.id}`,
-    }));
-
-    return [...reportActivities, ...claimActivities, ...itemActivities]
-      .sort((a, b) => b.timestamp - a.timestamp)
-      .slice(0, 6);
-  }, [reports, claims, items, dashboardNow]);
-
-  const emptyCategories = categoryStats.length === 0;
-
-  const categoryRows = emptyCategories
-    ? [{ label: 'Belum ada kategori', count: 0, value: 0 }]
-    : categoryStats;
 
   const emptyActivities = recentActivities.length === 0;
 
@@ -213,10 +151,10 @@ function AdminDashboard() {
         </section>
 
         <section className="admin-metrics" aria-label="Ringkasan admin">
-          <MetricCard label="TOTAL LAPORAN" value={stats.totalReports.toLocaleString('id-ID')} note={`${items.length} barang tampil di katalog`} icon={Archive} tone="green" />
+          <MetricCard label="TOTAL LAPORAN" value={stats.totalReports.toLocaleString('id-ID')} note={`Laporan masuk di sistem`} icon={Archive} tone="green" />
           <MetricCard label="DIVERIFIKASI" value={stats.verifiedReports.toLocaleString('id-ID')} note="Laporan disetujui admin" icon={ShieldCheck} tone="neutral" />
           <MetricCard label="PENDING" value={stats.pendingReports.toLocaleString('id-ID')} note="Menunggu verifikasi laporan" icon={Clock3} tone="red" />
-          <MetricCard label="KLAIM MASUK" value={claims.length.toLocaleString('id-ID')} note={`${stats.pendingClaims} pending, ${stats.claimedItems} disetujui`} icon={Camera} tone="neutral" />
+          <MetricCard label="KLAIM MASUK" value={stats.claimedItems.toLocaleString('id-ID')} note={`${stats.pendingClaims} menunggu verifikasi`} icon={Camera} tone="neutral" />
         </section>
 
         <section className="admin-dashboard-grid">
