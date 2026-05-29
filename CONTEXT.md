@@ -4,6 +4,12 @@
 
 SEEKEM adalah platform berbasis web untuk memfasilitasi pelaporan dan pencarian barang hilang/ditemukan di lingkungan kampus IPB University. Sistem ini menggunakan arsitektur **Hybrid P2P (Peer-to-Peer dengan Admin Verifikator)**. Interaksi serah terima fisik dilakukan mandiri oleh pengguna, namun sistem bertindak sebagai verifikator kepemilikan sebelum kontak privasi dibuka.
 
+> **STATUS PROYEK (29 Mei 2026):**
+> 1. Sinkronisasi Frontend & Backend telah mencapai **100%**. Semua rute (`/items`, `/history`, `/admin`, `/contact`) telah terhubung secara native ke PostgreSQL (Railway). Mock API telah dihapus sepenuhnya dari Frontend.
+> 2. Cloudinary terintegrasi untuk penyimpanan gambar via `UploadService`.
+> 3. Otentikasi dan Proteksi JWT telah diterapkan. Fitur CORS dibuka untuk `localhost:5173`.
+> 4. **Tugas Tersisa:** Implementasi Front-end & Back-end endpoint untuk Fitur Notifikasi.
+
 ## 2. Tech Stack & Infrastructure
 
 Sistem menggunakan arsitektur Decoupled (Client-Server):
@@ -12,7 +18,7 @@ Sistem menggunakan arsitektur Decoupled (Client-Server):
 - **Backend:** Python, FastAPI, Uvicorn (REST API). (Deployment: Railway).
 - **Database:** PostgreSQL. (Deployment: Railway).
 - **ORM:** SQLAlchemy.
-- **Storage (Images):** Backend Proxy Upload. Frontend mengirimkan file gambar mentah bersama data teks menggunakan protokol `multipart/form-data`. Backend bertanggung jawab menerima file tersebut, meneruskannya ke layanan pihak ketiga (Cloudinary/ImgBB/dll), dan menyimpan URL string yang dihasilkan ke PostgreSQL.
+- **Storage (Images):** Backend Proxy Upload. Frontend mengirimkan file gambar mentah bersama data teks menggunakan protokol `multipart/form-data`. Backend bertanggung jawab menerima file tersebut, meneruskannya ke layanan pihak ketiga (Cloudinary), dan menyimpan URL string yang dihasilkan ke PostgreSQL.
 - **Authentication:** JWT (JSON Web Tokens) stateless authentication di headers.
 
 ## 3. Core Actors & Authentication

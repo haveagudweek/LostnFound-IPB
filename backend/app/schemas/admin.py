@@ -76,3 +76,8 @@ class AdminClaimCreate(BaseModel):
 class AdminClaimAction(BaseModel):
     """FE mengirim: { action: "approve" / "reject" }"""
     action: str
+
+class AdminItemAction(BaseModel):
+    """FE mengirim: { action: "delete" / "hold" / "post" / "cancel_claim" }"""
+    action: str
+

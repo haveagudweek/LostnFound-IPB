@@ -151,3 +151,38 @@ async def report_item(
     db.commit()
     db.refresh(new_lap)
     return _laporan_to_item(new_lap)
+
+
+@router.patch("/{item_id}/claim-confirmation", response_model=ItemResponse)
+def confirm_lost_item_claimed(
+    item_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    FE memanggil: PATCH /api/items/{id}/claim-confirmation
+    Digunakan ketika pelapor barang HILANG mengonfirmasi bahwa barangnya sudah ketemu sendiri.
+    """
+    lap = db.query(Laporan).filter(Laporan.id == item_id).first()
+    if not lap:
+        raise HTTPException(status_code=404, detail="Barang tidak ditemukan")
+
+    if lap.jenis_laporan != JenisLaporan.hilang:
+        raise HTTPException(status_code=400, detail="Konfirmasi ini hanya untuk barang hilang")
+
+    if lap.pelapor_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Hanya pelapor yang dapat mengonfirmasi")
+
+    if lap.status == StatusLaporan.resolved:
+        raise HTTPException(status_code=400, detail="Barang sudah berstatus selesai")
+
+    # Set status jadi resolved
+    lap.status = StatusLaporan.resolved
+    db.commit()
+    db.refresh(lap)
+    
+    item = _laporan_to_item(lap)
+    item["claimStatus"] = "claimed"
+    item["claimantName"] = current_user.name
+    item["claimedByReporter"] = True
+    return item

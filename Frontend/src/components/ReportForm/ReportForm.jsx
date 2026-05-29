@@ -64,7 +64,7 @@ function ReportForm({ type }) {
 
       const reader = new FileReader();
       reader.onload = () => {
-        setFormData(prev => ({ ...prev, image: reader.result }));
+        setFormData(prev => ({ ...prev, image: reader.result, file: file }));
       };
       reader.onerror = () => {
         addToast('Gagal membaca file foto.', 'error');

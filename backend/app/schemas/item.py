@@ -16,6 +16,13 @@ class ItemResponse(BaseModel):
     category: str
     description: Optional[str] = None
     reporterName: Optional[str] = None
+    reporterId: Optional[int] = None
+    claimStatus: Optional[str] = None
+    claimantName: Optional[str] = None
+    claimId: Optional[str] = None
+    claimedAt: Optional[str] = None
+    postingStatus: Optional[str] = None
+    reportId: Optional[int] = None
 
 class ItemReportCreate(BaseModel):
     """
@@ -29,3 +36,8 @@ class ItemReportCreate(BaseModel):
     description: Optional[str] = None
     image: Optional[str] = None
     reporterId: Optional[int] = None
+
+class HistoryResponse(BaseModel):
+    reports: list[ItemResponse]
+    claims: list  # Will be list[AdminClaimResponse], but we avoid circular import here. We'll use Any or generic dict in router
+

@@ -9,7 +9,9 @@ from app.models.klaim import Klaim, StatusKlaim
 from app.schemas.admin import (
     AdminReportResponse, AdminVerifyAction,
     AdminClaimResponse, AdminClaimCreate, AdminClaimAction,
+    AdminItemAction
 )
+from app.schemas.item import ItemResponse
 from app.api.deps import get_current_user, get_current_active_admin
 from app.services.klaim_service import KlaimService
 from app.services.notifikasi_service import NotifikasiService
@@ -301,3 +303,90 @@ def verify_claim(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Gagal memverifikasi klaim: {str(e)}")
+
+# ════════════════════════════════════════════════
+# MANAGE POSTED ITEMS (Dashboard Admin)
+# ════════════════════════════════════════════════
+
+@router.get("/items", response_model=List[ItemResponse])
+def get_posted_items(
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_active_admin),
+):
+    """
+    FE memanggil: GET /api/admin/items
+    """
+    from app.api.items import _laporan_to_item
+    # Admin melihat semua laporan yang published, claimed, atau resolved
+    laporans = db.query(Laporan).filter(
+        Laporan.status.in_([StatusLaporan.published, StatusLaporan.claimed, StatusLaporan.resolved])
+    ).order_by(Laporan.created_at.desc()).all()
+    
+    results = []
+    for lap in laporans:
+        item = _laporan_to_item(lap)
+        # FE admin item list expects reportId
+        item["reportId"] = lap.id
+        
+        # Determine claimStatus for frontend admin table
+        if lap.status == StatusLaporan.claimed:
+            # Find the approved or pending claim
+            claim = db.query(Klaim).filter(
+                Klaim.laporan_id == lap.id,
+                Klaim.status_klaim.in_([StatusKlaim.pending, StatusKlaim.approved])
+            ).first()
+            if claim:
+                item["claimStatus"] = "claimed"
+                item["claimantName"] = claim.owner_name or claim.pengklaim.name if claim.pengklaim else None
+                item["claimId"] = str(claim.id)
+                item["claimedAt"] = claim.tanggal_klaim.strftime("%d %b %Y") if claim.tanggal_klaim else None
+        
+        # Map removed or held status for frontend filtering if needed
+        # In DB we don't have "held" status natively for items, we just use status
+        # but FE expects postingStatus.
+        item["postingStatus"] = "posted"
+
+        results.append(item)
+    return results
+
+@router.patch("/items/{item_id}", response_model=ItemResponse)
+def manage_posted_item(
+    item_id: int,
+    body: AdminItemAction,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_active_admin),
+):
+    """
+    FE memanggil: PATCH /api/admin/items/{id}
+    Body: { action: "delete" / "hold" / "post" / "cancel_claim" }
+    """
+    from app.api.items import _laporan_to_item
+    lap = db.query(Laporan).filter(Laporan.id == item_id).first()
+    if not lap:
+        raise HTTPException(status_code=404, detail="Barang tidak ditemukan")
+
+    if body.action == "delete":
+        lap.status = StatusLaporan.rejected # as a form of deletion
+    elif body.action == "hold":
+        lap.status = StatusLaporan.pending
+    elif body.action == "post":
+        lap.status = StatusLaporan.published
+    elif body.action == "cancel_claim":
+        lap.status = StatusLaporan.published
+        # Tolak semua klaim terkait yang pending/approved
+        claims = db.query(Klaim).filter(
+            Klaim.laporan_id == lap.id,
+            Klaim.status_klaim.in_([StatusKlaim.pending, StatusKlaim.approved])
+        ).all()
+        for claim in claims:
+            claim.status_klaim = StatusKlaim.rejected
+    else:
+        raise HTTPException(status_code=400, detail="Action tidak dikenal")
+
+    db.commit()
+    db.refresh(lap)
+    
+    item_res = _laporan_to_item(lap)
+    item_res["postingStatus"] = "held" if body.action == "hold" else "posted"
+    return item_res
+

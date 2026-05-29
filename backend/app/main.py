@@ -12,6 +12,8 @@ from app.api import (
     klaim as klaim_api,
     notifikasi as notifikasi_api,
     admin_dashboard as admin_dashboard_api,
+    history as history_api,
+    contact as contact_api,
 )
 
 # Buat tabel di database jika belum ada
@@ -37,6 +39,8 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(items_api.router, prefix="/api/items", tags=["items"])
 app.include_router(admin_api.router, prefix="/api/admin", tags=["admin"])
+app.include_router(history_api.router, prefix="/api/history", tags=["history"])
+app.include_router(contact_api.router, prefix="/api/contact", tags=["contact"])
 
 # ── Router internal / legacy (tetap tersedia untuk Swagger testing) ──
 app.include_router(laporan_api.router, prefix="/api/laporan", tags=["laporan (internal)"])
