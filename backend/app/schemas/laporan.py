@@ -1,16 +1,15 @@
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
-from app.models.laporan import JenisLaporan, StatusLaporan, KategoriBarang
+from app.models.laporan import JenisLaporan, StatusLaporan
 
 class LaporanBase(BaseModel):
     jenis_laporan: JenisLaporan
     tanggal_kejadian: datetime
     lokasi: str
-    deskripsi: str
+    deskripsi: Optional[str] = None
     nama_barang: str
-    kategori: KategoriBarang
-    ciri_ciri: str
+    kategori: str
     foto_url: Optional[str] = None
 
 class LaporanCreate(LaporanBase):
@@ -22,8 +21,8 @@ class LaporanUpdateStatus(BaseModel):
 # Nested schema untuk return user di laporan (opsional)
 class PelaporBase(BaseModel):
     id: int
-    nama: str
-    nomor_telepon: str
+    name: str
+    nim: str
     
     class Config:
         from_attributes = True

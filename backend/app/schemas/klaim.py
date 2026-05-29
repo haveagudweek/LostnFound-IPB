@@ -14,9 +14,9 @@ class KlaimVerify(BaseModel):
 # Nested schema untuk return data User sebagai pengklaim
 class PengklaimBase(BaseModel):
     id: int
-    nama: str
-    email_ipb: str
-    nomor_telepon: str
+    name: str
+    email: str
+    nim: str
     
     class Config:
         from_attributes = True

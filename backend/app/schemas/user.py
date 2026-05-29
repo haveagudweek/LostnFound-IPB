@@ -1,30 +1,44 @@
 from pydantic import BaseModel, EmailStr, validator, Field
 from typing import Optional
 from app.models.user import UserRole
-import re
 
-class UserBase(BaseModel):
-    nama: str
-    email_ipb: EmailStr
-    nomor_telepon: str
-
-class UserCreate(UserBase):
+class UserCreate(BaseModel):
+    name: str
+    email: EmailStr
+    nim: str
+    phone: str
     password: str = Field(..., max_length=72)
-    role: Optional[UserRole] = UserRole.civitas
 
-    @validator("email_ipb")
+    @validator("email")
     def validate_ipb_email(cls, v):
         if not v.endswith("@apps.ipb.ac.id"):
             raise ValueError("Email harus menggunakan domain @apps.ipb.ac.id")
         return v
 
 class UserLogin(BaseModel):
-    email_ipb: EmailStr
+    email: EmailStr
     password: str
 
-class UserResponse(UserBase):
+class UserResponse(BaseModel):
     id: int
+    name: str
+    email: str
+    nim: str
+    phone: str
     role: UserRole
+
+    class Config:
+        from_attributes = True
+
+class UserLoginResponse(BaseModel):
+    """Response login: data user + token, sesuai kontrak FE authStore."""
+    id: int
+    name: str
+    email: str
+    nim: str
+    phone: str
+    role: UserRole
+    token: str
 
     class Config:
         from_attributes = True
@@ -34,4 +48,4 @@ class Token(BaseModel):
     token_type: str
 
 class TokenData(BaseModel):
-    email_ipb: Optional[str] = None
+    email: Optional[str] = None

@@ -54,6 +54,9 @@ yarn-debug.log*
 yarn-error.log*
 .next/
 out/
+.vite/
+.eslintcache
+coverage/
 
 # Database
 *.db

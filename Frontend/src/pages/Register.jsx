@@ -10,6 +10,7 @@ function Register() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [nim, setNim] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -21,7 +22,7 @@ function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!name.trim() || !email.trim() || !nim.trim() || !password.trim()) {
+    if (!name.trim() || !email.trim() || !nim.trim() || !phone.trim() || !password.trim()) {
       addToast('Semua kolom wajib diisi.', 'error');
       return;
     }
@@ -43,7 +44,7 @@ function Register() {
 
     setLoading(true);
     try {
-      const user = await api.register({ name, email, nim, password });
+      const user = await api.register({ name, email, nim, phone, password });
       login(user);
       addToast('Registrasi berhasil! Selamat datang.', 'success');
       navigate('/');
@@ -118,6 +119,22 @@ function Register() {
                 onChange={(e) => setNim(e.target.value)}
                 required
                 autoComplete="off"
+              />
+            </div>
+          </div>
+
+          {/* Nomor Telepon */}
+          <div className="auth-form-group">
+            <label className="auth-form-group__label" htmlFor="reg-phone">NOMOR WHATSAPP</label>
+            <div className="auth-input-wrapper">
+              <input
+                type="tel"
+                id="reg-phone"
+                placeholder="Contoh: 08123456789"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                required
+                autoComplete="tel"
               />
             </div>
           </div>

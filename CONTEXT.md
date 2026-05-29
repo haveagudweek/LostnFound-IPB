@@ -36,11 +36,11 @@ Semua field yang memiliki pilihan terbatas wajib diimplementasikan menggunakan c
 **B. Database Models (SQLAlchemy Classes):**
 
 - **Class `User` (Tabel: `users`)**
-  - Kolom: `id`, `nama`, `email_ipb`, `nomor_telepon`, `password_hash`, `role` (RoleEnum).
+  - Kolom: `id`, `name`, `email`, `nim`, `phone`, `password_hash`, `role` (RoleEnum).
 - **Class `Laporan` (Tabel: `laporan`)**
-  - Kolom: `id`, `pelapor_id` (FK User), `jenis_laporan` (JenisLaporanEnum), `tanggal_kejadian`, `lokasi`, `deskripsi`, `nama_barang`, `kategori` (KategoriEnum), `foto_url` (String), `status` (StatusLaporanEnum).
+  - Kolom: `id`, `pelapor_id` (FK User), `jenis_laporan` (JenisLaporanEnum), `tanggal_kejadian`, `lokasi`, `deskripsi`, `nama_barang`, `kategori` (String, bukan Enum agar FE bebas), `foto_url` (String), `status` (StatusLaporanEnum).
 - **Class `Klaim` (Tabel: `klaim`)**
-  - Kolom: `id`, `laporan_id` (FK Laporan), `pengklaim_id` (FK User), `tanggal_klaim`, `alasan_klaim`, `bukti_foto_url` (String), `status_klaim` (StatusKlaimEnum).
+  - Kolom: `id`, `laporan_id` (FK Laporan), `pengklaim_id` (FK User), `tanggal_klaim`, `alasan_klaim`, `bukti_foto_url` (String), `owner_name`, `nim`, `faculty`, `contact`, `status_klaim` (StatusKlaimEnum).
 - **Class `Notifikasi` (Tabel: `notifikasi`)**
   - Kolom: `id`, `user_id` (FK User), `pesan`, `tipe`, `tanggal_kirim`, `is_read` (Boolean).
 

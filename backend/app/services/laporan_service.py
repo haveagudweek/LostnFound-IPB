@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
-from app.models.laporan import Laporan, StatusLaporan, JenisLaporan, KategoriBarang
+from fastapi import HTTPException
+from app.models.laporan import Laporan, StatusLaporan, JenisLaporan
 from app.schemas.laporan import LaporanCreate
 from sqlalchemy import or_
 
@@ -7,7 +8,6 @@ class LaporanService:
     
     @staticmethod
     def create_laporan(db: Session, laporan_in: LaporanCreate, pelapor_id: int) -> Laporan:
-        # Default status adalah pending saat dibuat oleh civitas
         new_laporan = Laporan(
             **laporan_in.dict(),
             pelapor_id=pelapor_id,
@@ -25,7 +25,7 @@ class LaporanService:
         limit: int = 100,
         status: StatusLaporan = None,
         jenis: JenisLaporan = None,
-        kategori: KategoriBarang = None,
+        kategori: str = None,
         search_query: str = None
     ) -> list[Laporan]:
         query = db.query(Laporan)
@@ -35,9 +35,8 @@ class LaporanService:
         if jenis:
             query = query.filter(Laporan.jenis_laporan == jenis)
         if kategori:
-            query = query.filter(Laporan.kategori == kategori)
+            query = query.filter(Laporan.kategori.ilike(f"%{kategori}%"))
         if search_query:
-            # Gunakan ilike untuk pencarian case-insensitive pada nama_barang atau deskripsi
             search_term = f"%{search_query}%"
             query = query.filter(
                 or_(
@@ -70,7 +69,6 @@ class LaporanService:
         if not laporan:
             raise HTTPException(status_code=404, detail="Laporan tidak ditemukan")
         
-        # Hanya pelapor asli yang bisa memicu penyelesaian secara mandiri
         if laporan.pelapor_id != user_id:
             raise HTTPException(status_code=403, detail="Anda bukan pemilik laporan ini")
             

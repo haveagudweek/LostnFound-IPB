@@ -18,7 +18,13 @@ class Klaim(Base):
     
     tanggal_klaim = Column(DateTime, default=datetime.utcnow, nullable=False)
     alasan_klaim = Column(Text, nullable=False)
-    bukti_foto_url = Column(String(500), nullable=True) # URL string dari Supabase/pihak ketiga
+    bukti_foto_url = Column(String(500), nullable=True)
+    
+    # Kolom tambahan sesuai kontrak FE (ClaimItem.jsx)
+    owner_name = Column(String(255), nullable=True)
+    nim = Column(String(50), nullable=True)
+    faculty = Column(String(255), nullable=True)
+    contact = Column(String(255), nullable=True)
     
     status_klaim = Column(Enum(StatusKlaim), default=StatusKlaim.pending, nullable=False)
     

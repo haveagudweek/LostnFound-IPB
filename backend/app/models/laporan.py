@@ -19,14 +19,6 @@ class PublicStatusFilter(str, enum.Enum):
     published = "published"
     resolved = "resolved"
 
-class KategoriBarang(str, enum.Enum):
-    electronics = "Electronics"
-    documents = "Documents"
-    accessories = "Accessories"
-    clothing = "Clothing"
-    bags = "Bags"
-    others = "Others"
-
 class Laporan(Base):
     __tablename__ = "laporan"
 
@@ -36,11 +28,10 @@ class Laporan(Base):
     jenis_laporan = Column(Enum(JenisLaporan), nullable=False)
     tanggal_kejadian = Column(DateTime, default=datetime.utcnow, nullable=False)
     lokasi = Column(String(255), nullable=False)
-    deskripsi = Column(Text, nullable=False)
+    deskripsi = Column(Text, nullable=True)
     
     nama_barang = Column(String(255), nullable=False)
-    kategori = Column(Enum(KategoriBarang, native_enum=False, length=100), nullable=False)
-    ciri_ciri = Column(Text, nullable=False)
+    kategori = Column(String(100), nullable=False)  # Free-text agar cocok dengan kategori FE
     foto_url = Column(String(500), nullable=True)
     
     status = Column(Enum(StatusLaporan), default=StatusLaporan.pending, nullable=False)

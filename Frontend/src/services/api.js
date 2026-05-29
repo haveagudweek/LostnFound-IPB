@@ -1,12 +1,59 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api';
 
+/**
+ * Helper untuk mendapatkan token dari Zustand persist storage.
+ * Tidak bisa import useAuthStore langsung (hook-only), jadi baca dari localStorage.
+ */
+function getToken() {
+  try {
+    const raw = localStorage.getItem('seekem-auth');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed?.state?.user?.token || null;
+  } catch {
+    return null;
+  }
+}
+
 const request = async (path, options = {}) => {
+  const token = getToken();
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
+    headers,
+  });
+
+  const contentType = response.headers.get('content-type') || '';
+  const data = contentType.includes('application/json') ? await response.json() : null;
+
+  if (!response.ok) {
+    throw new Error(data?.detail || data?.message || 'Terjadi kesalahan pada server.');
+  }
+
+  return data;
+};
+
+
+const requestFormData = async (path, options = {}) => {
+  const token = getToken();
+  const headers = {
+    ...options.headers,
+  };
+  // Do NOT set Content-Type here, let fetch generate the boundary for multipart/form-data
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers,
   });
 
   const contentType = response.headers.get('content-type') || '';
@@ -42,10 +89,27 @@ export const api = {
   getItemById: (id) => request(`/items/${id}`),
 
   // --- REPORTING ---
-  reportItem: (data, type) => request(`/items/report/${type}`, {
-    method: 'POST',
-    body: JSON.stringify(data),
-  }),
+  reportItem: (data, type) => {
+    if (data.file instanceof File) {
+      const formData = new FormData();
+      formData.append('name', data.name);
+      formData.append('category', data.category);
+      formData.append('location', data.location);
+      formData.append('time', data.time);
+      if (data.description) formData.append('description', data.description);
+      formData.append('image', data.file);
+      
+      return requestFormData(`/items/report/${type}`, {
+        method: 'POST',
+        body: formData,
+      });
+    }
+
+    return request(`/items/report/${type}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
 
   sendMessage: (itemId, message) => request(`/contact/${itemId}`, {
     method: 'POST',
