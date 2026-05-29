@@ -106,14 +106,26 @@ export const api = {
     });
   },
 
-  sendMessage: (itemId, message) => request(`/contact/${itemId}`, {
+  sendMessage: (itemId, data) => request(`/laporan/${itemId}/hubungi`, {
     method: 'POST',
-    body: JSON.stringify({ message }),
+    body: JSON.stringify(data),
   }),
-  createClaim: (payload) => request('/admin/claims', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  }),
+  createClaim: (data) => {
+    const formData = new FormData();
+    formData.append('itemId', data.itemId);
+    formData.append('ownerName', data.ownerName);
+    formData.append('nim', data.nim);
+    formData.append('faculty', data.faculty || '');
+    formData.append('contact', data.contact || '');
+    formData.append('description', data.description);
+    if (data.evidenceImage instanceof File) {
+      formData.append('evidenceImage', data.evidenceImage);
+    }
+    return requestFormData('/admin/claims', {
+      method: 'POST',
+      body: formData,
+    });
+  },
   confirmLostItemClaimed: (id, user) => request(`/items/${id}/claim-confirmation`, {
     method: 'PATCH',
     body: JSON.stringify(user),

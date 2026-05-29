@@ -1,9 +1,9 @@
 import os
 from dotenv import load_dotenv
 
-# Load .env file (asumsi .env ada di root project atau backend)
-# Kita cari ke direktori parent
-dotenv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), '.env')
+backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+dotenv_path = os.path.join(backend_dir, '.env')
+
 if os.path.exists(dotenv_path):
     load_dotenv(dotenv_path)
 else:

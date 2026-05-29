@@ -8,7 +8,7 @@ SEEKEM adalah platform berbasis web untuk memfasilitasi pelaporan dan pencarian 
 > 1. Sinkronisasi Frontend & Backend telah mencapai **100%**. Semua rute (`/items`, `/history`, `/admin`, `/contact`) telah terhubung secara native ke PostgreSQL (Railway). Mock API telah dihapus sepenuhnya dari Frontend.
 > 2. Cloudinary terintegrasi untuk penyimpanan gambar via `UploadService`.
 > 3. Otentikasi dan Proteksi JWT telah diterapkan. Fitur CORS dibuka untuk `localhost:5173`.
-> 4. **Tugas Tersisa:** Implementasi Front-end & Back-end endpoint untuk Fitur Notifikasi.
+> 4. **Tugas Tersisa:** Integrasi API Fitur Notifikasi di Frontend. (Saat ini Backend endpoint `/api/notifikasi` sudah selesai dan tersambung ke database, namun Frontend `Notifications.jsx` masih menggunakan data lokal/Zustand mock. Butuh dihubungkan menggunakan `api.js`).
 
 ## 2. Tech Stack & Infrastructure
 
@@ -82,5 +82,7 @@ Logika pemrosesan data dienkapsulasi dalam Service Class (`AuthService`, `Lapora
 
 ## 6. AI Development Guidelines
 
-- **Backend:** Implementasikan penanganan berkas masuk menggunakan `fastapi.UploadFile`. Integrasikan library HTTP client (seperti `httpx` atau `requests`) di dalam Service Class untuk meneruskan file gambar ke API pihak ketiga secara asynchronous. Sediakan penanganan error jika proses unggah eksternal gagal agar database tidak menyimpan data corrupt.
-- **Frontend:** Formulir pembuatan laporan dan klaim harus dikirim menggunakan objek `FormData` JavaScript untuk mendukung tipe konten `multipart/form-data`.
+- **Standar Pengunggahan File (Krusial):** **SEMBARANG fitur yang melibatkan pengunggahan file/gambar WAJIB menggunakan pendekatan `multipart/form-data` (bukan base64 string di dalam JSON).**
+  - **Frontend:** Formulir pembuatan laporan, klaim, atau fitur baru apapun yang mengandung file **harus** dikonstruksi menggunakan objek `FormData` JavaScript murni.
+  - **Backend:** Tangkap data tersebut menggunakan `fastapi.UploadFile = File(...)` dan field teks lainnya menggunakan `Form(...)`. Jangan gunakan Pydantic *Schema* (`BaseModel`) jika *endpoint* menerima file.
+- **Integrasi Cloudinary:** Gunakan `UploadService` untuk mengunggah file gambar asli ke Cloudinary secara *asynchronous* dan tangkap URL-nya untuk disimpan ke Database PostgreSQL. Sediakan penanganan *error* jika proses unggah eksternal gagal agar database tidak menyimpan data cacat.

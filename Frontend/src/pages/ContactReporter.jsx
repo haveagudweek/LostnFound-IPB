@@ -61,15 +61,11 @@ function ContactReporter() {
 
     setSubmitting(true);
 
-    const composedMessage = [
-      `Nama: ${fullName.trim()}`,
-      `WhatsApp: ${whatsapp.trim()}`,
-      `Barang: ${item.name}`,
-      `Pesan: ${message.trim() || 'Pemilik kontak ingin berkomunikasi terkait barang ini.'}`,
-    ].join('\n');
-
     try {
-      await api.sendMessage(id, composedMessage);
+      await api.sendMessage(id, { 
+        whatsapp: whatsapp.trim(), 
+        pesan: message.trim() 
+      });
       setSubmitting(false);
       addNotification({
         title: 'Pesan berhasil dikirim',

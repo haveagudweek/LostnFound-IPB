@@ -19,12 +19,19 @@ conf = ConnectionConfig(
 
 class EmailService:
     @staticmethod
-    async def send_contact_email(target_email: str, reporter_name: str, item_name: str, sender_name: str, sender_whatsapp: str, message: str):
+    async def send_contact_email(target_email: str, reporter_name: str, item_name: str, sender_name: str, sender_whatsapp: str, message: str, item_type: str = "hilang"):
         """
-        Mengirim email pemberitahuan ke pelapor asli dengan template HTML profesional.
+        Mengirim email pemberitahuan ke pelapor asli dengan template HTML profesional yang menyesuaikan jenis laporan.
         """
         pesan_tambahan = f"<p><strong>Pesan:</strong><br>{message}</p>" if message else ""
         
+        if item_type == "hilang":
+            email_subject = f"[SEEKEM] Informasi Penting Terkait Barang Hilang Anda: {item_name}"
+            email_intro = f"Kabar baik! Seseorang mungkin telah menemukan barang <strong>\"{item_name}\"</strong> yang Anda laporkan hilang dan ingin menghubungi Anda."
+        else:
+            email_subject = f"[SEEKEM] Ada yang Mengklaim Barang Temuan Anda: {item_name}"
+            email_intro = f"Halo! Seseorang telah mengklaim barang <strong>\"{item_name}\"</strong> yang Anda temukan dan ingin menghubungi Anda untuk verifikasi kepemilikan."
+
         html_content = f"""
         <html>
             <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
@@ -34,7 +41,7 @@ class EmailService:
                     </div>
                     <div style="padding: 20px;">
                         <p>Halo <strong>{reporter_name}</strong>,</p>
-                        <p>Kabar baik! Seseorang telah menemukan barang <strong>"{item_name}"</strong> yang Anda laporkan dan ingin menghubungi Anda.</p>
+                        <p>{email_intro}</p>
                         
                         <div style="background-color: #f9f9f9; padding: 15px; border-left: 4px solid #1a5632; margin-top: 20px; margin-bottom: 20px;">
                             <p style="margin: 0;"><strong>Nama Penghubung:</strong> {sender_name}</p>
@@ -55,7 +62,7 @@ class EmailService:
         """
         
         message_schema = MessageSchema(
-            subject=f"[SEEKEM] Pemberitahuan Barang Ditemukan: {item_name}",
+            subject=email_subject,
             recipients=[target_email],
             body=html_content,
             subtype=MessageType.html

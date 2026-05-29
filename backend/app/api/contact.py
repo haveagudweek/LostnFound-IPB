@@ -42,6 +42,8 @@ async def send_message(
     sender_name = current_user.name
     sender_whatsapp = body.whatsapp
     message_content = body.pesan
+    # Kirim parameter jenis laporan agar copy emailnya tepat
+    item_type = lap.jenis_laporan.value
 
     # Kirim email menggunakan BackgroundTasks agar response API tidak memblokir (non-blocking)
     background_tasks.add_task(
@@ -51,7 +53,8 @@ async def send_message(
         item_name=item_name,
         sender_name=sender_name,
         sender_whatsapp=sender_whatsapp,
-        message=message_content
+        message=message_content,
+        item_type=item_type
     )
 
     # Tetap kirim notifikasi in-app

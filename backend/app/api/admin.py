@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Form, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -14,6 +14,7 @@ from app.schemas.admin import (
 from app.schemas.item import ItemResponse
 from app.api.deps import get_current_user, get_current_active_admin
 from app.services.klaim_service import KlaimService
+from app.services.upload_service import UploadService
 from app.services.notifikasi_service import NotifikasiService
 from app.models.notifikasi import TipeNotifikasi
 
@@ -201,8 +202,14 @@ def get_claim_by_id(
 
 
 @router.post("/claims", response_model=AdminClaimResponse, status_code=201)
-def create_claim(
-    body: AdminClaimCreate,
+async def create_claim(
+    itemId: int = Form(...),
+    ownerName: str = Form(...),
+    nim: str = Form(...),
+    faculty: str = Form(""),
+    contact: str = Form(""),
+    description: str = Form(...),
+    evidenceImage: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -211,7 +218,7 @@ def create_claim(
     Body: { itemId, ownerName, nim, faculty, contact, description, evidenceImage }
     """
     # Cek apakah laporan ada
-    lap = db.query(Laporan).filter(Laporan.id == body.itemId).first()
+    lap = db.query(Laporan).filter(Laporan.id == itemId).first()
     if not lap:
         raise HTTPException(status_code=404, detail="Laporan tidak ditemukan")
 
@@ -222,15 +229,18 @@ def create_claim(
         raise HTTPException(status_code=400, detail="Anda tidak dapat mengklaim laporan Anda sendiri")
 
     try:
+        # Unggah file ke Cloudinary
+        foto_url = await UploadService.upload_image(evidenceImage)
+
         new_klaim = Klaim(
-            laporan_id=body.itemId,
+            laporan_id=itemId,
             pengklaim_id=current_user.id,
-            alasan_klaim=body.description,
-            bukti_foto_url=body.evidenceImage,
-            owner_name=body.ownerName,
-            nim=body.nim,
-            faculty=body.faculty,
-            contact=body.contact,
+            alasan_klaim=description,
+            bukti_foto_url=foto_url,
+            owner_name=ownerName,
+            nim=nim,
+            faculty=faculty,
+            contact=contact,
             status_klaim=StatusKlaim.pending,
         )
         db.add(new_klaim)
