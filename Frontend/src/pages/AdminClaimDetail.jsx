@@ -13,6 +13,7 @@ function AdminClaimDetail() {
   const { isAdmin } = useAuthStore();
   const addToast = useUIStore((state) => state.addToast);
   const addNotification = useUIStore((state) => state.addNotification);
+  const requestConfirmation = useUIStore((state) => state.requestConfirmation);
   const [claim, setClaim] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
@@ -44,10 +45,24 @@ function AdminClaimDetail() {
   }, [id, isAdmin, navigate, addToast]);
 
   const handleVerify = async (action) => {
+    const approved = action === 'approve';
+
+    const confirmed = await requestConfirmation({
+      title: approved ? 'Approve Klaim' : 'Reject Klaim',
+      message: approved
+        ? 'Klaim akan disetujui dan status barang diperbarui.'
+        : 'Klaim akan ditolak dan pemohon menerima status penolakan.',
+      confirmLabel: approved ? 'Approve' : 'Reject',
+      tone: approved ? 'default' : 'danger',
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
     setActionLoading(action);
     try {
       const updated = await api.verifyClaim(claim.id, action);
-      const approved = action === 'approve';
       addToast(approved ? 'Klaim berhasil disetujui.' : 'Klaim berhasil ditolak.', 'success');
       if (updated.userId) {
         addNotification({
@@ -119,14 +134,14 @@ function AdminClaimDetail() {
               <div className="admin-claim-right">
                 <article className="admin-panel admin-detail-card">
                   <div className="admin-panel__header">
-                    <h2>BUKTI KEPEMILIKAN</h2>
+                    <h2>BUKTI SERAH TERIMA BARANG</h2>
                     <span className="admin-pill">IMG - ATTACHED</span>
                   </div>
                   <img src={claim.image} alt={claim.itemName} className="admin-report-image" />
                 </article>
 
                 <article className="admin-panel admin-detail-card">
-                  <h2>DESKRIPSI KLAIM</h2>
+                  <h2>DESKRIPSI SERAH TERIMA BARANG</h2>
                   <blockquote className="admin-description-box">"{claim.description}"</blockquote>
                   <div className="admin-note">
                     <ShieldCheck size={24} />

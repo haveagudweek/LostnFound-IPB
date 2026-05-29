@@ -12,6 +12,7 @@ function ClaimItem() {
   const user = useAuthStore((state) => state.user);
   const addToast = useUIStore((state) => state.addToast);
   const addNotification = useUIStore((state) => state.addNotification);
+  const requestConfirmation = useUIStore((state) => state.requestConfirmation);
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -83,6 +84,16 @@ function ClaimItem() {
       return;
     }
 
+    const confirmed = await requestConfirmation({
+      title: 'Kirim Klaim Barang',
+      message: 'Klaim dan bukti serah terima akan dikirim untuk diverifikasi admin.',
+      confirmLabel: 'Kirim Klaim',
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
     setSubmitting(true);
     try {
       const claim = await api.createClaim({
@@ -130,15 +141,14 @@ function ClaimItem() {
         <header className="claim-header">
           <span>Klaim Barang</span>
           <h1>{item.name}</h1>
-          <p>Isi deskripsi dan unggah bukti bahwa barang ini memang milik Anda.</p>
+          <p>Isi deskripsi dan unggah bukti bahwa barang sudah diterima.</p>
         </header>
 
         <form className="claim-card" onSubmit={handleSubmit}>
           <div className="claim-warning">
-            <ShieldAlert size={22} />
+            <ShieldAlert size={30} />
             <p>
-              Berikan ciri khusus yang hanya diketahui pemilik asli. Bukti dapat berupa foto barang serupa,
-              kartu identitas yang sesuai, struk pembelian, atau dokumentasi lain yang relevan.
+              Berikan tanda bukti barang sudah anda terima dari pelapor. Bukti dapat berupa foto serah terima barang.
             </p>
           </div>
 
@@ -165,20 +175,20 @@ function ClaimItem() {
           </div>
 
           <label className="claim-field">
-            <span>Deskripsi Bukti Kepemilikan *</span>
+            <span>Deskripsi Bukti Pengembalian *</span>
             <textarea
               name="description"
               rows="6"
               value={formData.description}
               onChange={handleChange}
-              placeholder="Jelaskan ciri khusus, isi barang, warna, merek, stiker, lokasi kehilangan, atau bukti lain..."
+              placeholder="Jelaskan proses singkat serah terima barang..."
               required
             />
           </label>
 
           <div className="claim-field">
-            <span>Bukti Kepemilikan *</span>
-            {evidencePreview ? (
+            <span>Bukti Serah Terima Barang *</span>
+            {formData.evidenceImage ? (
               <div className="claim-evidence-preview">
                 <img src={evidencePreview} alt="Bukti kepemilikan" />
                 <button

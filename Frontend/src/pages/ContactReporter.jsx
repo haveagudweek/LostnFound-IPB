@@ -11,6 +11,7 @@ function ContactReporter() {
   const navigate = useNavigate();
   const addToast = useUIStore((state) => state.addToast);
   const addNotification = useUIStore((state) => state.addNotification);
+  const requestConfirmation = useUIStore((state) => state.requestConfirmation);
   const user = useAuthStore((state) => state.user);
   
   const [item, setItem] = useState(null);
@@ -56,6 +57,16 @@ function ContactReporter() {
 
     if (!isPhoneValid) {
       addToast('Nomor WhatsApp tidak valid. Gunakan format 08xx.', 'error');
+      return;
+    }
+
+    const confirmed = await requestConfirmation({
+      title: 'Kirim Pesan',
+      message: 'Informasi kontak dan pesan Anda akan diteruskan ke pelapor barang.',
+      confirmLabel: 'Kirim',
+    });
+
+    if (!confirmed) {
       return;
     }
 

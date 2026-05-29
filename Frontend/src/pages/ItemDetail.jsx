@@ -13,6 +13,7 @@ function ItemDetail() {
   const isAdmin = useAuthStore((state) => state.isAdmin);
   const addToast = useUIStore((state) => state.addToast);
   const addNotification = useUIStore((state) => state.addNotification);
+  const requestConfirmation = useUIStore((state) => state.requestConfirmation);
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -87,6 +88,16 @@ function ItemDetail() {
   const timeLabel = isFound ? 'WAKTU DITEMUKAN' : 'WAKTU HILANG';
 
   const handleConfirmClaimed = async () => {
+    const confirmed = await requestConfirmation({
+      title: 'Konfirmasi Pengambilan',
+      message: 'Barang akan ditandai sudah diambil atau diklaim pada sistem.',
+      confirmLabel: 'Konfirmasi',
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
     setConfirmingClaimed(true);
     try {
       const result = await api.confirmLostItemClaimed(item.id, user);

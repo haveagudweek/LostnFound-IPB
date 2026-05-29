@@ -30,6 +30,7 @@ function AdminPostedItems() {
   const navigate = useNavigate();
   const { isAdmin } = useAuthStore();
   const addToast = useUIStore((state) => state.addToast);
+  const requestConfirmation = useUIStore((state) => state.requestConfirmation);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
@@ -106,6 +107,24 @@ function AdminPostedItems() {
   const handleItemAction = async (event, item, action) => {
     event.stopPropagation();
     setOpenActionMenu(null);
+
+    const confirmMessage = action === 'hold'
+      ? 'Konfirmasi hold posting barang ini?'
+      : action === 'post'
+        ? 'Konfirmasi tampilkan kembali posting barang ini?'
+        : 'Konfirmasi hapus posting barang ini?';
+
+    const confirmed = await requestConfirmation({
+      title: action === 'delete' ? 'Hapus Posting' : 'Ubah Status Posting',
+      message: confirmMessage,
+      confirmLabel: action === 'hold' ? 'Hold' : action === 'post' ? 'Posting' : 'Hapus',
+      tone: action === 'delete' ? 'danger' : 'default',
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
     setActionLoading(`${action}-${item.id}`);
 
     try {

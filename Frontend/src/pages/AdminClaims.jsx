@@ -11,6 +11,7 @@ function AdminClaims() {
   const navigate = useNavigate();
   const { isAdmin } = useAuthStore();
   const addToast = useUIStore((state) => state.addToast);
+  const requestConfirmation = useUIStore((state) => state.requestConfirmation);
   const [claims, setClaims] = useState([]);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -79,6 +80,20 @@ function AdminClaims() {
 
   const handleUpdateStatus = async (claim, action) => {
     setOpenStatusMenu(null);
+
+    const confirmed = await requestConfirmation({
+      title: action === 'approve' ? 'Ubah Status Klaim' : 'Reject Klaim',
+      message: action === 'approve'
+        ? 'Status klaim akan diubah menjadi approved.'
+        : 'Status klaim akan diubah menjadi rejected.',
+      confirmLabel: action === 'approve' ? 'Approved' : 'Rejected',
+      tone: action === 'approve' ? 'default' : 'danger',
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
     setActionLoading(`${action}-${claim.id}`);
     try {
       if (claim.source === 'lost_report_confirmation') {
