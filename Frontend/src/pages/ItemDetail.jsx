@@ -69,9 +69,10 @@ function ItemDetail() {
     (item.reporterId && item.reporterId === user?.id)
     || (normalizedReporter && normalizedUser && normalizedReporter === normalizedUser)
   );
-  const canClaim = isFound && !isClaimed && !isOwnReport;
-  const canConfirmClaimed = !isFound && isOwnReport && !isClaimed;
-  const canContactReporter = !isOwnReport;
+  const isAdmin = user?.role === 'admin';
+  const canClaim = isFound && !isClaimed && !isOwnReport && !isAdmin;
+  const canConfirmClaimed = !isFound && isOwnReport && !isClaimed && !isAdmin;
+  const canContactReporter = !isOwnReport && !isAdmin;
   const isSingleAction = (canConfirmClaimed && !canContactReporter) || (!canContactReporter && !canClaim);
   const statusLabel = isFound ? 'DITEMUKAN' : 'HILANG';
   const statusClass = isFound ? 'found' : 'lost';

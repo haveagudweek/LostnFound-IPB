@@ -112,7 +112,6 @@ export const api = {
   }),
   createClaim: (data) => {
     const formData = new FormData();
-    formData.append('itemId', data.itemId);
     formData.append('ownerName', data.ownerName);
     formData.append('nim', data.nim);
     formData.append('faculty', data.faculty || '');
@@ -121,7 +120,7 @@ export const api = {
     if (data.evidenceImage instanceof File) {
       formData.append('evidenceImage', data.evidenceImage);
     }
-    return requestFormData('/admin/claims', {
+    return requestFormData(`/items/${data.itemId}/claims`, {
       method: 'POST',
       body: formData,
     });

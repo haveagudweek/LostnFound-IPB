@@ -67,8 +67,8 @@ Logika pemrosesan data dienkapsulasi dalam Service Class (`AuthService`, `Lapora
 
 ### B. Modul Interaksi Barang & Klaim (Hybrid P2P)
 
-1. **Laporan Baru (POST `/laporan`):** Menerima file gambar via `UploadFile` dan field teks via `Form`. Backend mengunggah gambar ke cloud storage, mengambil URL-nya, lalu membuat entitas laporan baru dengan status awal `Pending`.
-2. **Klaim Baru (POST `/klaim`):** Menerima file bukti kepemilikan dan alasan klaim via `multipart/form-data`. Status laporan otomatis berubah menjadi `Claimed`.
+1. **Laporan Baru (`POST /api/items/report/{type}`):** Menerima file gambar via `UploadFile` dan field teks via `Form`. Backend mengunggah gambar ke cloud storage, mengambil URL-nya, lalu membuat entitas laporan baru dengan status awal `Pending`.
+2. **Klaim Baru (`POST /api/items/{item_id}/claims`):** Menerima file bukti kepemilikan dan alasan klaim via `multipart/form-data`. Status laporan otomatis berubah menjadi `Claimed`.
 3. **Verifikasi Admin:**
    - Reject: Status klaim di-reject, status laporan kembali `Published`.
    - Approve: Status klaim di-approve. Sistem otomatis melakukan insert data ke tabel Notifikasi untuk memberitahu pengklaim.
@@ -86,3 +86,6 @@ Logika pemrosesan data dienkapsulasi dalam Service Class (`AuthService`, `Lapora
   - **Frontend:** Formulir pembuatan laporan, klaim, atau fitur baru apapun yang mengandung file **harus** dikonstruksi menggunakan objek `FormData` JavaScript murni.
   - **Backend:** Tangkap data tersebut menggunakan `fastapi.UploadFile = File(...)` dan field teks lainnya menggunakan `Form(...)`. Jangan gunakan Pydantic *Schema* (`BaseModel`) jika *endpoint* menerima file.
 - **Integrasi Cloudinary:** Gunakan `UploadService` untuk mengunggah file gambar asli ke Cloudinary secara *asynchronous* dan tangkap URL-nya untuk disimpan ke Database PostgreSQL. Sediakan penanganan *error* jika proses unggah eksternal gagal agar database tidak menyimpan data cacat.
+- **Aturan RBAC Ketat (Role-Based Access Control):** 
+  - **Admin Bukan Pengguna:** Admin secara eksplisit **dilarang** membuat laporan (`POST /api/items/report`) maupun mengklaim barang (`POST /api/items/{id}/claims`). Sistem harus memblokir Admin di lapisan Frontend (menyembunyikan tombol) dan Backend (melemparkan `HTTP 403 Forbidden`).
+  - **Isolasi Rute Admin:** Segala *endpoint* di bawah berkas `admin.py` atau berawalan rute `/api/admin/` WAJIB dijaga menggunakan dependensi `get_current_active_admin`. Jangan mencampuradukkan fitur civitas awam di dalam rute admin.

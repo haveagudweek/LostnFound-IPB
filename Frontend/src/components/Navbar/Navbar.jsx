@@ -235,12 +235,14 @@ function Navbar() {
                 <HelpCircle size={20} />
               </button>
 
-              <button className="navbar__cta" id="btn-report" onClick={() => navigate('/report')}>
-                <span>Lapor Barang</span>
-                <div className="navbar__cta-badge">
-                  <Plus size={12} />
-                </div>
-              </button>
+              {user?.role !== 'admin' && (
+                <button className="navbar__cta" id="btn-report" onClick={() => navigate('/report')}>
+                  <span>Lapor Barang</span>
+                  <div className="navbar__cta-badge">
+                    <Plus size={12} />
+                  </div>
+                </button>
+              )}
 
               {/* Authenticated profile dropdown */}
               <div className="navbar__profile" ref={profileRef}>
@@ -362,7 +364,7 @@ function Navbar() {
               {link.label}
             </Link>
           ))}
-          {isAuthenticated && (
+          {isAuthenticated && user?.role !== 'admin' && (
             <button
               className="navbar__mobile-report"
               onClick={() => {

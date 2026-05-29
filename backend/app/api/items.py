@@ -11,6 +11,12 @@ from app.schemas.item import ItemResponse
 from app.api.deps import get_current_user
 from app.services.upload_service import UploadService
 
+from app.models.klaim import Klaim, StatusKlaim
+from app.models.notifikasi import TipeNotifikasi
+from app.schemas.admin import AdminClaimResponse
+from app.services.notifikasi_service import NotifikasiService
+from app.api.admin import _klaim_to_admin_claim
+
 router = APIRouter()
 
 
@@ -124,6 +130,9 @@ async def report_item(
     if type not in ("lost", "found"):
         raise HTTPException(status_code=400, detail="Tipe laporan harus 'lost' atau 'found'")
 
+    if current_user.role.value == "admin":
+        raise HTTPException(status_code=403, detail="Admin tidak diperbolehkan membuat laporan barang.")
+
     jenis = JenisLaporan.hilang if type == "lost" else JenisLaporan.ditemukan
 
     try:
@@ -186,3 +195,72 @@ def confirm_lost_item_claimed(
     item["claimantName"] = current_user.name
     item["claimedByReporter"] = True
     return item
+
+
+@router.post("/{item_id}/claims", response_model=AdminClaimResponse, status_code=201)
+async def create_claim(
+    item_id: int,
+    ownerName: str = Form(...),
+    nim: str = Form(...),
+    faculty: str = Form(""),
+    contact: str = Form(""),
+    description: str = Form(...),
+    evidenceImage: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    FE memanggil: POST /api/items/{item_id}/claims
+    Menerima form data untuk membuat klaim barang.
+    """
+    if current_user.role.value == "admin":
+        raise HTTPException(status_code=403, detail="Admin tidak diperbolehkan mengklaim barang.")
+
+    # Cek apakah laporan ada
+    lap = db.query(Laporan).filter(Laporan.id == item_id).first()
+    if not lap:
+        raise HTTPException(status_code=404, detail="Laporan tidak ditemukan")
+
+    if lap.status not in (StatusLaporan.published, StatusLaporan.resolved):
+        raise HTTPException(status_code=400, detail="Laporan ini tidak dapat diklaim saat ini")
+
+    if lap.pelapor_id == current_user.id:
+        raise HTTPException(status_code=400, detail="Anda tidak dapat mengklaim laporan Anda sendiri")
+
+    try:
+        # Unggah file ke Cloudinary
+        foto_url = await UploadService.upload_image(evidenceImage)
+
+        new_klaim = Klaim(
+            laporan_id=item_id,
+            pengklaim_id=current_user.id,
+            alasan_klaim=description,
+            bukti_foto_url=foto_url,
+            owner_name=ownerName,
+            nim=nim,
+            faculty=faculty,
+            contact=contact,
+            status_klaim=StatusKlaim.pending,
+        )
+        db.add(new_klaim)
+
+        # Update status laporan menjadi claimed
+        lap.status = StatusLaporan.claimed
+
+        # Notifikasi ke pemilik laporan
+        NotifikasiService.create_notifikasi(
+            db=db,
+            user_id=lap.pelapor_id,
+            pesan="Seseorang mengklaim barang Anda. Menunggu verifikasi Admin.",
+            tipe=TipeNotifikasi.INFO,
+        )
+
+        db.commit()
+        db.refresh(new_klaim)
+        
+        return _klaim_to_admin_claim(new_klaim)
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Gagal membuat klaim: {str(e)}")

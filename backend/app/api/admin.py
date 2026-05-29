@@ -201,69 +201,7 @@ def get_claim_by_id(
     return _klaim_to_admin_claim(klm)
 
 
-@router.post("/claims", response_model=AdminClaimResponse, status_code=201)
-async def create_claim(
-    itemId: int = Form(...),
-    ownerName: str = Form(...),
-    nim: str = Form(...),
-    faculty: str = Form(""),
-    contact: str = Form(""),
-    description: str = Form(...),
-    evidenceImage: UploadFile = File(...),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """
-    FE memanggil: POST /api/admin/claims
-    Body: { itemId, ownerName, nim, faculty, contact, description, evidenceImage }
-    """
-    # Cek apakah laporan ada
-    lap = db.query(Laporan).filter(Laporan.id == itemId).first()
-    if not lap:
-        raise HTTPException(status_code=404, detail="Laporan tidak ditemukan")
 
-    if lap.status not in (StatusLaporan.published, StatusLaporan.resolved):
-        raise HTTPException(status_code=400, detail="Laporan ini tidak dapat diklaim saat ini")
-
-    if lap.pelapor_id == current_user.id:
-        raise HTTPException(status_code=400, detail="Anda tidak dapat mengklaim laporan Anda sendiri")
-
-    try:
-        # Unggah file ke Cloudinary
-        foto_url = await UploadService.upload_image(evidenceImage)
-
-        new_klaim = Klaim(
-            laporan_id=itemId,
-            pengklaim_id=current_user.id,
-            alasan_klaim=description,
-            bukti_foto_url=foto_url,
-            owner_name=ownerName,
-            nim=nim,
-            faculty=faculty,
-            contact=contact,
-            status_klaim=StatusKlaim.pending,
-        )
-        db.add(new_klaim)
-
-        # Update status laporan menjadi claimed
-        lap.status = StatusLaporan.claimed
-
-        # Notifikasi ke pemilik laporan
-        NotifikasiService.create_notifikasi(
-            db=db,
-            user_id=lap.pelapor_id,
-            pesan="Seseorang mengklaim barang Anda. Menunggu verifikasi Admin.",
-            tipe=TipeNotifikasi.INFO,
-        )
-
-        db.commit()
-        db.refresh(new_klaim)
-        return _klaim_to_admin_claim(new_klaim)
-    except HTTPException:
-        raise
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Gagal membuat klaim: {str(e)}")
 
 
 @router.patch("/claims/{claim_id}", response_model=AdminClaimResponse)
