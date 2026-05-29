@@ -29,6 +29,7 @@ function ReportForm({ type }) {
   const navigate = useNavigate();
   const addToast = useUIStore((state) => state.addToast);
   const addNotification = useUIStore((state) => state.addNotification);
+  const requestConfirmation = useUIStore((state) => state.requestConfirmation);
   const user = useAuthStore((state) => state.user);
   
   const title = isFound ? 'Laporkan Barang Temuan' : 'Laporkan Barang Hilang';
@@ -75,6 +76,17 @@ function ReportForm({ type }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const confirmed = await requestConfirmation({
+      title: 'Submit Laporan',
+      message: `Laporan ${isFound ? 'barang temuan' : 'barang hilang'} akan dikirim dan masuk ke proses verifikasi admin.`,
+      confirmLabel: 'Submit',
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
     setLoading(true);
     try {
       const report = await api.reportItem({

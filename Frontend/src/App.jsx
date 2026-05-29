@@ -7,6 +7,7 @@ import ReportSelection from './pages/ReportSelection';
 import ReportLost from './pages/ReportLost';
 import ReportFound from './pages/ReportFound';
 import Toast from './components/Toast/Toast';
+import ConfirmDialog from './components/ConfirmDialog/ConfirmDialog';
 
 // Pages
 import Login from './pages/Login';
@@ -105,6 +106,7 @@ function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       {!hideChrome && <Footer />}
+      <ConfirmDialog />
       <Toast />
     </div>
   );

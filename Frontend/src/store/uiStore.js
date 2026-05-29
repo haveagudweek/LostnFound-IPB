@@ -8,6 +8,7 @@ export const useUIStore = create(
     (set, get) => ({
       toasts: [],
       notifications: [],
+      confirmation: null,
       isLoading: false,
       addToast: (message, type = 'info') => {
         const id = createNotificationId();
@@ -61,6 +62,32 @@ export const useUIStore = create(
               : notification
           ),
         })),
+      requestConfirmation: ({
+        title = 'Konfirmasi Aksi',
+        message = 'Apakah Anda yakin ingin melanjutkan?',
+        confirmLabel = 'Konfirmasi',
+        cancelLabel = 'Batalkan',
+        tone = 'default',
+      }) =>
+        new Promise((resolve) => {
+          set({
+            confirmation: {
+              title,
+              message,
+              confirmLabel,
+              cancelLabel,
+              tone,
+              onConfirm: () => {
+                set({ confirmation: null });
+                resolve(true);
+              },
+              onCancel: () => {
+                set({ confirmation: null });
+                resolve(false);
+              },
+            },
+          });
+        }),
       removeToast: (id) =>
         set((state) => ({ toasts: state.toasts.filter((t) => t.id !== id) })),
       setLoading: (loading) => set({ isLoading: loading }),

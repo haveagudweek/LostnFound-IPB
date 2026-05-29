@@ -45,6 +45,7 @@ function Notifications() {
   const notifications = useUIStore((state) => state.notifications);
   const markNotificationRead = useUIStore((state) => state.markNotificationRead);
   const markAllNotificationsRead = useUIStore((state) => state.markAllNotificationsRead);
+  const requestConfirmation = useUIStore((state) => state.requestConfirmation);
 
   const userNotifications = notifications.filter((notification) =>
     !notification.userId || notification.userId === user?.id
@@ -56,6 +57,20 @@ function Notifications() {
     if (notification.link) {
       navigate(notification.link);
     }
+  };
+
+  const handleMarkAllRead = async () => {
+    const confirmed = await requestConfirmation({
+      title: 'Tandai Dibaca',
+      message: 'Semua notifikasi yang belum dibaca akan ditandai sebagai dibaca.',
+      confirmLabel: 'Tandai Dibaca',
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
+    markAllNotificationsRead(user?.id);
   };
 
   return (
@@ -70,7 +85,7 @@ function Notifications() {
             </p>
           </div>
           <div className="notifications-actions">
-            <button type="button" onClick={() => markAllNotificationsRead(user?.id)} disabled={!unreadCount}>
+            <button type="button" onClick={handleMarkAllRead} disabled={!unreadCount}>
               <CheckCheck size={18} />
               <span>Tandai Dibaca</span>
             </button>

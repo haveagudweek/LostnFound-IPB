@@ -18,6 +18,7 @@ function Register() {
   const navigate = useNavigate();
   const login = useAuthStore((state) => state.login);
   const addToast = useUIStore((state) => state.addToast);
+  const requestConfirmation = useUIStore((state) => state.requestConfirmation);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -39,6 +40,16 @@ function Register() {
 
     if (!agreeTerms) {
       addToast('Anda harus menyetujui Syarat dan Ketentuan.', 'error');
+      return;
+    }
+
+    const confirmed = await requestConfirmation({
+      title: 'Daftar Akun Baru',
+      message: 'Data akun akan dikirim untuk membuat akun SEEKEM baru.',
+      confirmLabel: 'Daftar',
+    });
+
+    if (!confirmed) {
       return;
     }
 

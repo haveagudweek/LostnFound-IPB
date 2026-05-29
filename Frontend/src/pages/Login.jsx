@@ -16,6 +16,7 @@ function Login() {
   const location = useLocation();
   const login = useAuthStore((state) => state.login);
   const addToast = useUIStore((state) => state.addToast);
+  const requestConfirmation = useUIStore((state) => state.requestConfirmation);
   const redirectFrom = location.state?.from;
   const redirectTo = redirectFrom ? `${redirectFrom.pathname}${redirectFrom.search || ''}` : null;
 
@@ -24,6 +25,16 @@ function Login() {
 
     if (!email.trim() || !password.trim()) {
       addToast('Email dan password wajib diisi.', 'error');
+      return;
+    }
+
+    const confirmed = await requestConfirmation({
+      title: 'Masuk ke Akun',
+      message: 'Pastikan email dan password sudah benar sebelum melanjutkan ke SEEKEM.',
+      confirmLabel: 'Masuk',
+    });
+
+    if (!confirmed) {
       return;
     }
 
