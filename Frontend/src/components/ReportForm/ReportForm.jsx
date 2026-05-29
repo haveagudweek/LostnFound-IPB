@@ -42,7 +42,8 @@ function ReportForm({ type }) {
     location: '',
     time: '',
     description: '',
-    image: null
+    image: null,
+    file: null
   });
   const [loading, setLoading] = useState(false);
 
@@ -200,7 +201,7 @@ function ReportForm({ type }) {
                   <img src={formData.image} alt="Preview" style={{ width: '100%', height: '200px', objectFit: 'cover' }} />
                   <button 
                     type="button"
-                    onClick={() => setFormData(prev => ({...prev, image: null}))}
+                    onClick={() => setFormData(prev => ({...prev, image: null, file: null}))}
                     style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.5)', color: 'white', padding: '4px 8px', borderRadius: '4px' }}
                   >
                     Hapus
