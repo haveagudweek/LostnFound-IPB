@@ -40,7 +40,7 @@ app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(items_api.router, prefix="/api/items", tags=["items"])
 app.include_router(admin_api.router, prefix="/api/admin", tags=["admin"])
 app.include_router(history_api.router, prefix="/api/history", tags=["history"])
-app.include_router(contact_api.router, prefix="/api/contact", tags=["contact"])
+app.include_router(contact_api.router, prefix="/api/laporan", tags=["contact_reporter"])
 
 # ── Router internal / legacy (tetap tersedia untuk Swagger testing) ──
 app.include_router(laporan_api.router, prefix="/api/laporan", tags=["laporan (internal)"])
