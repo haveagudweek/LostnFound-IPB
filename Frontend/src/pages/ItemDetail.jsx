@@ -63,12 +63,7 @@ function ItemDetail() {
 
   const isFound = item.status === 'found';
   const isClaimed = item.claimStatus === 'claimed';
-  const normalizedReporter = item.reporterName?.trim().toLowerCase();
-  const normalizedUser = user?.name?.trim().toLowerCase();
-  const isOwnReport = Boolean(
-    (item.reporterId && item.reporterId === user?.id)
-    || (normalizedReporter && normalizedUser && normalizedReporter === normalizedUser)
-  );
+  const isOwnReport = Boolean(item.reporterId && item.reporterId === user?.id);
   const canClaim = isFound && !isClaimed && !isOwnReport && !isAdmin;
   const canConfirmClaimed = !isFound && isOwnReport && !isClaimed && !isAdmin;
   const canContactReporter = !isOwnReport && !isAdmin;

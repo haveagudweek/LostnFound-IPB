@@ -47,6 +47,7 @@ def _laporan_to_item(lap: Laporan) -> dict:
         "category": lap.kategori,
         "description": lap.deskripsi,
         "reporterName": reporter_name,
+        "reporterId": lap.pelapor_id,
     }
 
 

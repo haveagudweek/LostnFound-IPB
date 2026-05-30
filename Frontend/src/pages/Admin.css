@@ -706,7 +706,7 @@
 }
 
 .admin-table-card {
-  overflow: hidden;
+  /* overflow: hidden; dihapus agar dropdown action tidak terpotong */
 }
 
 .admin-table {
@@ -723,6 +723,13 @@
   text-align: left;
   font-size: 10px;
   letter-spacing: 0.1em;
+}
+
+.admin-table th:first-child {
+  border-top-left-radius: 8px;
+}
+.admin-table th:last-child {
+  border-top-right-radius: 8px;
 }
 
 .admin-table td {
@@ -806,6 +813,13 @@
   background: #ffffff;
   box-shadow: 0 12px 30px rgba(0, 61, 45, 0.12), 0 2px 8px rgba(0, 0, 0, 0.05);
   z-index: 10;
+}
+
+/* Jika row berada di urutan 1 atau 2 paling bawah, buka dropdown ke atas */
+.admin-table tbody tr:nth-last-child(1) .admin-status-menu,
+.admin-table tbody tr:nth-last-child(2) .admin-status-menu {
+  top: auto;
+  bottom: calc(100% + 6px);
 }
 
 .admin-status-menu button {
