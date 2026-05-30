@@ -147,7 +147,7 @@ export const api = {
     method: 'PATCH',
     body: JSON.stringify({ action }),
   }),
-  getDashboardStats: () => request('/admin/stats'),
+  getDashboardStats: () => request('/admin/dashboard/stats'),
   getClaims: () => request('/admin/claims'),
   getClaimById: (id) => request(`/admin/claims/${id}`),
   verifyClaim: (id, action) => request(`/admin/claims/${id}`, {

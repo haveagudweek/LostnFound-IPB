@@ -100,18 +100,33 @@ function AdminDashboard() {
         }
 
         // 2. Map Traffic (7 hari terakhir)
+        const counts = Array.from({ length: 7 }, (_, i) => {
+          const d = new Date();
+          d.setDate(d.getDate() - (6 - i));
+          return {
+             date: new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short' }).format(d),
+             count: 0
+          };
+        });
+        
         if (data.traffic_laporan && data.traffic_laporan.length > 0) {
-          const maxTraffic = Math.max(...data.traffic_laporan.map((t) => t.laporan_masuk), 1);
-          setChartBars(
-            data.traffic_laporan.map((t) => ({
-              count: t.laporan_masuk,
-              height: Math.max(12, Math.round((t.laporan_masuk / maxTraffic) * 100)),
-              date: t.tanggal,
-            }))
-          );
-        } else {
-          setChartBars(Array.from({ length: 7 }, () => ({ count: 0, height: 12 })));
+          const now = Date.now();
+          data.traffic_laporan.forEach((t) => {
+            const timestamp = new Date(t.tanggal).getTime();
+            const age = Math.floor((now - timestamp) / 86400000);
+            if (age >= 0 && age < 7) {
+              counts[6 - age].count += t.laporan_masuk;
+            }
+          });
         }
+        
+        const maxTraffic = Math.max(...counts.map(c => c.count), 1);
+        setChartBars(
+          counts.map((item) => ({
+            ...item,
+            height: Math.max(12, Math.round((item.count / maxTraffic) * 100)),
+          }))
+        );
 
         // 3. Map Recent Activities
         if (data.recent_activities) {
@@ -170,7 +185,18 @@ function AdminDashboard() {
             </div>
             <div className="admin-chart" aria-label="Grafik laporan per hari">
               {chartBars.map((bar, index) => (
-                <span key={index} title={`${bar.count} aktivitas`} style={{ '--bar-height': `${bar.height}%` }} />
+                <div key={index} className="admin-chart__bar-wrapper">
+                  <span 
+                    className="admin-chart__bar" 
+                    style={{ '--bar-height': `${bar.height}%` }}
+                  >
+                    <div className="admin-chart__tooltip">
+                      <strong>{bar.count} Laporan</strong>
+                      <small>{bar.date}</small>
+                    </div>
+                  </span>
+                  <span className="admin-chart__label">{bar.date}</span>
+                </div>
               ))}
             </div>
           </div>
