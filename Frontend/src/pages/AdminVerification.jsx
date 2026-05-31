@@ -74,10 +74,6 @@ function AdminVerification() {
             <h1>Manajemen Laporan</h1>
             <p>Verifikasi dan kelola laporan barang temuan dari civitas akademika.</p>
           </div>
-          <button className="admin-export-btn">
-            <Download size={16} />
-            Ekspor CSV
-          </button>
         </section>
 
         <section className="admin-filter-card">

@@ -147,10 +147,6 @@ function Login() {
           Belum punya akun? <Link to="/register">Daftar sekarang</Link>
         </p>
 
-        {/* Demo hint — hidden in production */}
-        <div className="auth-demo-hint">
-          <small>Demo: admin@apps.ipb.ac.id / admin123 | rizky@apps.ipb.ac.id / user123</small>
-        </div>
       </div>
     </main>
   );
