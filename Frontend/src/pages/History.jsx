@@ -38,6 +38,18 @@ const statusConfig = {
     icon: XCircle,
     description: 'Laporan atau klaim tidak lolos verifikasi admin.',
   },
+  resolved: {
+    label: 'Resolved',
+    tone: 'success',
+    icon: CheckCircle2,
+    description: 'Laporan telah diselesaikan secara mandiri.',
+  },
+  claimed: {
+    label: 'Claimed',
+    tone: 'success',
+    icon: PackageCheck,
+    description: 'Barang berhasil diklaim dan dikembalikan ke pemilik.',
+  },
   pending: {
     label: 'Pending',
     tone: 'warning',
