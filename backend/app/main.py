@@ -16,10 +16,8 @@ from app.api import (
     contact as contact_api,
 )
 
-# Buat tabel di database jika belum ada
 Base.metadata.create_all(bind=engine)
 
-# Inisialisasi aplikasi FastAPI
 app = FastAPI(
     title="LostnFound-IPB API",
     description="API untuk sistem pelaporan kehilangan dan penemuan barang di IPB",
