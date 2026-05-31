@@ -43,7 +43,7 @@ Semua field dengan pilihan terbatas dijaga menggunakan `Enum` di PostgreSQL:
 
 ### B. Tabel-Tabel Utama
 1. **Tabel `users`**
-   - Atribut: `id` (PK), `name`, `email` (Unique), `nim`, `phone`, `password_hash`, `role`, `is_verified`, `verification_token`.
+   - Atribut: `id` (PK), `name`, `email` (Unique), `nim`, `phone`, `password_hash`, `role`, `is_verified`, `verification_token`, `verification_token_created_at`.
 2. **Tabel `laporan`**
    - Atribut: `id` (PK), `pelapor_id` (FK -> users), `jenis_laporan`, `tanggal_kejadian`, `lokasi`, `deskripsi`, `nama_barang`, `kategori`, `foto_url`, `status`, `created_at`.
 3. **Tabel `klaim`**
@@ -56,10 +56,12 @@ Berikut adalah alur logika yang bisa digambar menjadi *Sequence Diagram* atau *A
 
 ### Flow 1: Registrasi & Verifikasi Akun
 1. User mengisi formulir registrasi di Frontend. Frontend menembak API `POST /register`.
-2. Backend (FastAPI) menyimpan data *user* ke tabel `users` dengan status `is_verified=False` dan men-*generate* string rahasia `verification_token`.
+2. Backend (FastAPI) menyimpan data *user* ke tabel `users` dengan status `is_verified=False`, men-*generate* string rahasia `verification_token`, dan mencatat waktu pembuatannya di `verification_token_created_at`.
 3. Backend menggunakan `BackgroundTasks` (agar respons ke Frontend instan tanpa *loading* lambat) untuk merakit HTML via Jinja2 dan menembak URL Webhook Google Apps Script (GAS) menggunakan `httpx`. GAS kemudian meneruskan email ke *inbox* pendaftar.
 4. User mengklik tautan verifikasi di email (`/verify-email?token=xyz`). Frontend menangkap *token* dari URL, lalu menembak `GET /verify-email?token=xyz`.
-5. Backend mencocokkan *token*. Jika valid, `is_verified` diubah menjadi `True`, *token* dihancurkan, dan akun siap digunakan untuk *Login*. Jika *user* memaksa login sebelum langkah ini, akan ditolak (`HTTP 403`).
+5. Backend mencocokkan *token* dan mengecek masa berlakunya (**24 jam**). Jika valid dan belum kedaluwarsa, `is_verified` diubah menjadi `True`, *token* dihancurkan, dan akun siap digunakan untuk *Login*. Jika *token* sudah kedaluwarsa, Backend menolak dengan pesan yang menyarankan kirim ulang.
+6. Jika *user* memaksa login sebelum verifikasi, akan ditolak (`HTTP 403`). Halaman Login otomatis menampilkan banner "Kirim Ulang Email Verifikasi" dengan *cooldown* 60 detik.
+7. Endpoint `POST /resend-verification` meng-*generate* token baru, me-*reset* waktu kedaluwarsa, dan mengirim ulang email. Endpoint ini dilindungi oleh *rate limiting* sisi server (minimal 60 detik antar permintaan) serta respons generik (tidak membocorkan apakah email terdaftar atau tidak) demi keamanan.
 
 ### Flow 2: Pelaporan Barang Baru
 1. User mengisi formulir beserta foto bukti. Frontend mengirim `multipart/form-data` (bukan JSON string) ke Backend.

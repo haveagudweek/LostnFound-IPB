@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { Landmark, Mail, KeyRound, ArrowRight, Loader2 } from 'lucide-react';
+import { Landmark, Mail, KeyRound, ArrowRight, Loader2, RefreshCw } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import { useUIStore } from '../store/uiStore';
@@ -12,13 +12,24 @@ function Login() {
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // State untuk fitur resend verification
+  const [showResend, setShowResend] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
   const navigate = useNavigate();
   const location = useLocation();
   const login = useAuthStore((state) => state.login);
   const addToast = useUIStore((state) => state.addToast);
-  const requestConfirmation = useUIStore((state) => state.requestConfirmation);
   const redirectFrom = location.state?.from;
   const redirectTo = redirectFrom ? `${redirectFrom.pathname}${redirectFrom.search || ''}` : null;
+
+  // Countdown timer untuk cooldown resend
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -29,6 +40,7 @@ function Login() {
     }
 
     setLoading(true);
+    setShowResend(false);
     try {
       const user = await api.login({ email, password });
       login(user);
@@ -42,10 +54,29 @@ function Login() {
       }
     } catch (error) {
       addToast(error.message, 'error');
+      // Jika error 403 (belum verifikasi), tampilkan tombol resend
+      if (error.message.includes('belum diverifikasi')) {
+        setShowResend(true);
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  const handleResend = useCallback(async () => {
+    if (resendCooldown > 0 || resendLoading) return;
+
+    setResendLoading(true);
+    try {
+      await api.resendVerification(email);
+      addToast('Email verifikasi telah dikirim ulang. Cek kotak masuk atau folder Spam Anda.', 'success');
+      setResendCooldown(60);
+    } catch (error) {
+      addToast(error.message, 'error');
+    } finally {
+      setResendLoading(false);
+    }
+  }, [email, resendCooldown, resendLoading, addToast]);
 
   return (
     <main className="auth-page" id="login-page">
@@ -131,6 +162,30 @@ function Login() {
             )}
           </button>
         </form>
+
+        {/* Resend Verification Banner */}
+        {showResend && (
+          <div className="auth-resend-banner" id="resend-verification-banner">
+            <p className="auth-resend-banner__text">
+              Email belum diverifikasi? Kirim ulang email verifikasi.
+            </p>
+            <button
+              type="button"
+              className="auth-resend-banner__btn"
+              onClick={handleResend}
+              disabled={resendLoading || resendCooldown > 0}
+            >
+              {resendLoading ? (
+                <Loader2 className="spin" size={16} />
+              ) : (
+                <>
+                  <RefreshCw size={14} />
+                  {resendCooldown > 0 ? `Tunggu ${resendCooldown}s` : 'Kirim Ulang'}
+                </>
+              )}
+            </button>
+          </div>
+        )}
 
         {/* Footer link */}
         <p className="auth-card__footer">

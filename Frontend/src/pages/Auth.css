@@ -365,6 +365,56 @@
 }
 
 /* ══════════════════════════════════════════
+   Resend Verification Banner
+   ══════════════════════════════════════════ */
+.auth-resend-banner {
+  margin-top: 20px;
+  padding: 14px 16px;
+  background: #fff8e1;
+  border: 1.5px solid #ffe082;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  animation: fadeInUp 0.3s ease;
+}
+
+.auth-resend-banner__text {
+  font-size: var(--font-size-xs);
+  color: #5d4037;
+  line-height: 1.4;
+  flex: 1;
+}
+
+.auth-resend-banner__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--color-primary-800);
+  color: var(--color-white);
+  border: none;
+  border-radius: var(--radius-full);
+  font-family: var(--font-family);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+}
+
+.auth-resend-banner__btn:hover:not(:disabled) {
+  background: var(--color-primary-700);
+  transform: translateY(-1px);
+}
+
+.auth-resend-banner__btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ══════════════════════════════════════════
    Spinner
    ══════════════════════════════════════════ */
 .spin {

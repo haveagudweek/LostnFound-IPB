@@ -83,6 +83,10 @@ export const api = {
     body: JSON.stringify({ name, email, nim, phone, password }),
   }),
   verifyEmail: (token) => request(`/auth/verify-email?token=${token}`, { method: 'GET' }),
+  resendVerification: (email) => request('/auth/resend-verification', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  }),
   getItems: (type = 'all', query = '', filters = {}) => {
     const params = new URLSearchParams({ type, query });
     if (filters.category) params.set('category', filters.category);
