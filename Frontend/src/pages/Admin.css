@@ -396,8 +396,14 @@
   font-weight: 600;
 }
 
+.admin-panel--traffic {
+  display: flex;
+  flex-direction: column;
+}
+
 .admin-chart {
-  height: 302px;
+  flex: 1;
+  min-height: 302px;
   margin-top: 26px;
   padding: 34px 28px 20px;
   display: flex;
