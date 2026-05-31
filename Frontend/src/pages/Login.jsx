@@ -28,16 +28,6 @@ function Login() {
       return;
     }
 
-    const confirmed = await requestConfirmation({
-      title: 'Masuk ke Akun',
-      message: 'Pastikan email dan password sudah benar sebelum melanjutkan ke SEEKEM.',
-      confirmLabel: 'Masuk',
-    });
-
-    if (!confirmed) {
-      return;
-    }
-
     setLoading(true);
     try {
       const user = await api.login({ email, password });
