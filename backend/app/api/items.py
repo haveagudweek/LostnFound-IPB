@@ -48,6 +48,8 @@ def _laporan_to_item(lap: Laporan) -> dict:
         "description": lap.deskripsi,
         "reporterName": reporter_name,
         "reporterId": lap.pelapor_id,
+        "tag": "Hilang" if lap.jenis_laporan == JenisLaporan.hilang else "Temuan",
+        "reportTime": lap.created_at.strftime("%d %b %Y, %H:%M") if lap.created_at else None,
     }
 
 

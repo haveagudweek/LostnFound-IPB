@@ -96,14 +96,7 @@ function ReportForm({ type }) {
         reporterName: user?.name,
         reporterNim: user?.nim,
       }, type);
-      addNotification({
-        title: 'Laporan berhasil dibuat',
-        message: `${report.name} sudah dikirim dan menunggu verifikasi admin.`,
-        type: 'success',
-        category: 'report',
-        userId: user?.id,
-        link: '/history',
-      });
+      addToast(`Laporan ${report.name} berhasil dibuat dan menunggu verifikasi admin.`, 'success');
       navigate('/history');
     } catch (error) {
       addToast(error.message, 'error');

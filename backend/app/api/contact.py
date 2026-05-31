@@ -65,5 +65,6 @@ async def send_message(
         pesan=pesan_notif[:255],
         tipe=TipeNotifikasi.INFO
     )
+    db.commit()
 
     return {"status": "success", "message": "Email berhasil dikirim ke pelapor"}

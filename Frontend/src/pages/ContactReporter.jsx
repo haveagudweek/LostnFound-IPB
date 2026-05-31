@@ -78,14 +78,7 @@ function ContactReporter() {
         pesan: message.trim() 
       });
       setSubmitting(false);
-      addNotification({
-        title: 'Pesan berhasil dikirim',
-        message: `Pesan terkait ${item.name} sudah diteruskan ke pelapor.`,
-        type: 'success',
-        category: 'message',
-        userId: user?.id,
-        link: `/item/${id}`,
-      });
+      addToast(`Pesan terkait ${item.name} sudah diteruskan ke pelapor.`, 'success');
       navigate(`/item/${id}`);
     } catch (error) {
       addToast(error.message, 'error');

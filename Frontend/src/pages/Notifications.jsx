@@ -1,4 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import {
   Bell,
   CheckCheck,
@@ -43,10 +44,40 @@ function formatDate(value) {
 function Notifications() {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const notifications = useUIStore((state) => state.notifications);
   const markNotificationRead = useUIStore((state) => state.markNotificationRead);
   const markAllNotificationsRead = useUIStore((state) => state.markAllNotificationsRead);
   const requestConfirmation = useUIStore((state) => state.requestConfirmation);
+  const setNotifications = useUIStore((state) => state.setNotifications);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchNotifs() {
+      if (!isAuthenticated) return;
+      try {
+        const data = await api.getNotifications();
+        if (cancelled) return;
+        
+        const mappedNotifs = data.map(n => ({
+          id: n.id,
+          title: n.tipe === 'SUCCESS' ? 'Berhasil' : n.tipe === 'WARNING' ? 'Peringatan' : 'Informasi',
+          message: n.pesan,
+          type: n.tipe.toLowerCase(),
+          category: 'system',
+          createdAt: n.tanggal_kirim,
+          read: n.is_read
+        }));
+        
+        setNotifications(mappedNotifs);
+      } catch (error) {
+        console.error('Failed to fetch notifications:', error);
+      }
+    }
+    
+    fetchNotifs();
+    return () => { cancelled = true; };
+  }, [isAuthenticated, setNotifications]);
 
   const userNotifications = notifications;
   const unreadCount = userNotifications.filter((notification) => !notification.read).length;

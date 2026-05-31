@@ -4,12 +4,13 @@
 
 SEEKEM adalah platform berbasis web untuk memfasilitasi pelaporan dan pencarian barang hilang/ditemukan di lingkungan kampus IPB University. Sistem ini menggunakan arsitektur **Hybrid P2P (Peer-to-Peer dengan Admin Verifikator)**. Interaksi serah terima fisik dilakukan mandiri oleh pengguna, namun sistem bertindak sebagai verifikator kepemilikan sebelum kontak privasi dibuka.
 
-> **STATUS PROYEK (30 Mei 2026):**
-> 1. Sinkronisasi Frontend & Backend telah mencapai **100%**. Semua rute (`/items`, `/history`, `/admin`, `/contact`) telah terhubung secara native ke PostgreSQL (Railway). Mock API telah dihapus sepenuhnya dari Frontend.
+> **STATUS PROYEK (31 Mei 2026):**
+> 1. Sinkronisasi Frontend & Backend telah mencapai **~95%**. Semua rute utama (`/items`, `/history`, `/admin`, `/contact`) terhubung ke PostgreSQL (Railway). Mock API telah dihapus. **Namun audit menemukan beberapa gap data-mapping dan bug integrasi** (lihat Bagian 7).
 > 2. Cloudinary terintegrasi untuk penyimpanan gambar via `UploadService`.
-> 3. Otentikasi dan Proteksi JWT (RBAC) telah diterapkan dengan ketat. Fitur CORS dibuka untuk `localhost:5173`.
-> 4. **Integrasi SMTP (Email):** Fitur pengiriman pesan langsung (P2P) antara penemu dan pemilik barang telah sepenuhnya berfungsi menggunakan `EmailService` yang mengirimkan format email dinamis ("Barang Ditemukan" vs "Barang Hilang").
-> 5. **Tugas Tersisa:** Integrasi API Fitur Notifikasi di Frontend. (Saat ini Backend endpoint `/api/notifikasi` sudah selesai dan tersambung ke database, namun Frontend `Notifications.jsx` masih menggunakan data lokal/Zustand mock. Butuh dihubungkan menggunakan `api.js`).
+> 3. Otentikasi dan Proteksi JWT (RBAC) telah diterapkan dengan ketat. Fitur CORS dibuka untuk `localhost:5173`. **⚠️ CORS production (Vercel domain) belum dikonfigurasi.**
+> 4. **Integrasi SMTP (Email):** Fitur pengiriman pesan langsung (P2P) berfungsi via `EmailService`. **⚠️ Bug: `contact.py` tidak melakukan `db.commit()` setelah `create_notifikasi()`, sehingga notifikasi in-app dari fitur hubungi pelapor tidak tersimpan ke database.**
+> 5. **Integrasi Notifikasi Frontend:** `Navbar.jsx` sudah fetch dari `api.getNotifications()` dan menyimpan ke Zustand. **⚠️ Namun `Notifications.jsx` sendiri tidak melakukan fetch ulang saat mount** — hanya membaca state Zustand yang di-set oleh Navbar.
+> 6. **⚠️ `addNotification()` di Frontend (Zustand lokal)** digunakan di banyak halaman (ClaimItem, ContactReporter, ItemDetail, AdminReportDetail, AdminClaimDetail, ReportForm) tetapi **hanya menyimpan ke memory browser, hilang saat refresh**. Backend sudah menulis notifikasi persisten via `NotifikasiService` — sehingga `addNotification` sebaiknya hanya digunakan sebagai feedback sesaat (ephemeral), bukan sumber notifikasi utama.
 
 ## 2. Tech Stack & Infrastructure
 
@@ -38,7 +39,7 @@ Semua field yang memiliki pilihan terbatas wajib diimplementasikan menggunakan c
 - `JenisLaporanEnum`: 'Barang Hilang', 'Barang Ditemukan'
 - `StatusLaporanEnum`: 'Pending', 'Published', 'Claimed', 'Resolved', 'Rejected'
 - `StatusKlaimEnum`: 'Pending', 'Approved', 'Rejected'
-- `KategoriEnum`: 'Electronics', 'Documents', 'Accessories', 'Clothing', 'Bags', 'Others'
+- `KategoriEnum`: _(Tidak diimplementasikan sebagai Enum — Backend menggunakan `String(100)` free-text)_. Frontend menggunakan 13 kategori Bahasa Indonesia yang didefinisikan di `catalog.js` (Elektronik, Dompet, Kunci, Kartu Identitas, Buku & Dokumen, Tas, Botol Minum, Alat Tulis, Pakaian/Jaket, Aksesori, Perlengkapan Ibadah, Olahraga, Lainnya).
 
 **B. Database Models (SQLAlchemy Classes):**
 
@@ -57,7 +58,7 @@ Digunakan untuk enkapsulasi dan validasi payload dari/ke Frontend (khusus untuk 
 - `UserLoginSchema`, `UserResponseSchema`, `EmailSchema`, dll.
 
 **D. Business Logic (Service Classes):**
-Logika pemrosesan data dienkapsulasi dalam Service Class (`AuthService`, `LaporanService`, `KlaimService`, `DashboardService`, `EmailService`, `UploadService`).
+Logika pemrosesan data dienkapsulasi dalam Service Class (`LaporanService`, `KlaimService`, `DashboardService`, `EmailService`, `UploadService`, `NotifikasiService`). _Catatan: `AuthService` yang disebutkan sebelumnya tidak ada sebagai class terpisah — logic autentikasi langsung di `auth.py` dan `security.py`._
 
 ## 5. Critical Business Logic, App Flow & Required Endpoints
 
@@ -92,3 +93,36 @@ Logika pemrosesan data dienkapsulasi dalam Service Class (`AuthService`, `Lapora
   - **Admin Bukan Pengguna:** Admin secara eksplisit **dilarang** membuat laporan (`POST /api/items/report`) maupun mengklaim barang (`POST /api/items/{id}/claims`). Sistem harus memblokir Admin di lapisan Frontend (menyembunyikan tombol) dan Backend (melemparkan `HTTP 403 Forbidden`).
   - **Isolasi Rute Admin:** Segala *endpoint* di bawah berkas `admin.py` atau berawalan rute `/api/admin/` WAJIB dijaga menggunakan dependensi `get_current_active_admin`. Jangan mencampuradukkan fitur civitas awam di dalam rute admin.
 - **Analitik & Dasbor:** Semua proses agregasi data (penghitungan jumlah, statistik, *group by* kategori) **wajib** dilakukan di tingkat *Database* (Backend) melalui `DashboardService`. Frontend dilarang keras melakukan manipulasi *array* secara massal hanya untuk membuat laporan statistik.
+
+## 7. Temuan Audit & Bug Tracker (31 Mei 2026)
+
+Hasil audit menyeluruh terhadap seluruh codebase. Temuan dikelompokkan berdasarkan prioritas.
+
+### A. Bug Kritis (Harus Diperbaiki)
+
+| # | Temuan | File | Status |
+|---|--------|------|--------|
+| 1 | **`contact.py` tidak `db.commit()` setelah `create_notifikasi()`** — notifikasi in-app dari fitur "Hubungi Pelapor" tidak tersimpan ke database. | `backend/app/api/contact.py` | ✅ Selesai |
+| 2 | **`confirmLostItemClaimed` response mismatch** — FE membaca `result.item` tetapi BE mengembalikan objek langsung tanpa wrapper. Menyebabkan `undefined` di UI setelah konfirmasi. | `Frontend/src/pages/ItemDetail.jsx` L99 vs `backend/app/api/items.py` L166-198 | ✅ Selesai |
+| 3 | **`Notifications.jsx` tidak fetch dari backend saat mount** — hanya membaca Zustand state yang di-set oleh Navbar. Jika Navbar belum mount atau data stale, halaman notifikasi kosong. | `Frontend/src/pages/Notifications.jsx` | ✅ Selesai |
+
+### B. Bug Sedang (Perlu Perbaikan)
+
+| # | Temuan | File | Status |
+|---|--------|------|--------|
+| 4 | **History: field `tag` tidak disediakan oleh backend** — `_laporan_to_item()` tidak menghasilkan field `tag`. FE `normalizeEntries()` membaca `report.tag` untuk label "Hilang"/"Temuan" → selalu `undefined` → label default "Laporan Temuan" untuk semua entry. | `backend/app/api/history.py` + `items.py` `_laporan_to_item()` | ✅ Selesai |
+| 5 | **History: field `reportTime` tidak disediakan** — Kolom "Dikirim" di panel detail History selalu menampilkan `-`. | `backend/app/api/history.py` | ✅ Selesai |
+| 6 | **CORS hanya `localhost:5173`** — Deployment production (Vercel + Railway) akan gagal karena domain Vercel belum masuk `allow_origins`. | `backend/app/main.py` L32 | ✅ Selesai |
+| 7 | **ItemDetail: view count hardcoded `24 Views`** — Tidak ada tracking views di backend. Angka statis menyesatkan. | `Frontend/src/pages/ItemDetail.jsx` L169 | ✅ Selesai |
+| 8 | **ItemDetail: image gallery duplikat** — `const images = [item.image, item.image]` menampilkan gambar yang sama dua kali. | `Frontend/src/pages/ItemDetail.jsx` L77 | ✅ Selesai |
+| 9 | **`addNotification()` FE duplikasi dengan backend** — Notifikasi dari `addNotification()` Zustand hilang saat refresh. Backend sudah menulis notifikasi persisten. Rekomendasi: gunakan `addToast()` saja untuk feedback sesaat di FE. | `Frontend/src/store/uiStore.js` + semua consumer | ✅ Selesai |
+
+### C. Perbaikan Ringan & Dokumentasi
+
+| # | Temuan | File | Status |
+|---|--------|------|--------|
+| 10 | **Tidak ada notifikasi ke pelapor saat admin approve/reject laporan** — Hanya verifikasi klaim yang mengirim notifikasi. Pelapor tidak tahu apakah laporannya sudah published atau rejected. | `backend/app/api/admin.py` `verify_report()` | ✅ Selesai |
+| 11 | **KategoriEnum di CONTEXT.md** (`Electronics`, `Documents`, dst) **tidak sinkron** dengan implementasi aktual — Backend menggunakan free-text `String(100)`, Frontend punya 13 kategori berbahasa Indonesia di `catalog.js`. | CONTEXT.md Bagian 4A | ✅ Dikoreksi |
+| 12 | **`AuthService` class tidak ada** — Disebutkan di CONTEXT.md Bagian 4D namun implementasi auth langsung di `auth.py` + `security.py` tanpa class service terpisah. | CONTEXT.md Bagian 4D | ✅ Dikoreksi |
+| 13 | **`repositories/` directory kosong** — Repository pattern disebutkan dalam struktur folder backend tetapi tidak diimplementasikan. Query dilakukan langsung di API routes dan Service classes. | `backend/app/repositories/` | ℹ️ By Design |
+| 14 | **`NotifikasiService.create_notifikasi()` tidak melakukan `db.commit()`** — Bergantung pada caller untuk commit. Beberapa caller (seperti `contact.py`) lupa memanggil commit. | `backend/app/services/notifikasi_service.py` | Terkait #1 |

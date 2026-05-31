@@ -155,8 +155,20 @@ def verify_report(
     try:
         if body.action == "approve":
             lap.status = StatusLaporan.published
+            NotifikasiService.create_notifikasi(
+                db=db,
+                user_id=lap.pelapor_id,
+                pesan=f"Laporan Anda untuk '{lap.nama_barang}' telah disetujui admin dan dipublikasikan.",
+                tipe=TipeNotifikasi.SUCCESS,
+            )
         elif body.action == "reject":
             lap.status = StatusLaporan.rejected
+            NotifikasiService.create_notifikasi(
+                db=db,
+                user_id=lap.pelapor_id,
+                pesan=f"Laporan Anda untuk '{lap.nama_barang}' ditolak oleh admin.",
+                tipe=TipeNotifikasi.WARNING,
+            )
         else:
             raise HTTPException(status_code=400, detail="Action harus 'approve' atau 'reject'")
 

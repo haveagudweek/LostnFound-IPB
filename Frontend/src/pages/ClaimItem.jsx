@@ -106,14 +106,7 @@ function ClaimItem() {
         description: formData.description,
         evidenceImage: formData.evidenceImage,
       });
-      addNotification({
-        title: 'Klaim berhasil dikirim',
-        message: `Klaim untuk ${claim.itemName} sudah masuk dan menunggu verifikasi admin.`,
-        type: 'success',
-        category: 'claim',
-        userId: user?.id,
-        link: '/history',
-      });
+      addToast(`Klaim untuk ${claim.itemName} berhasil dikirim dan menunggu verifikasi admin.`, 'success');
       navigate(`/item/${item.id}`);
     } catch (error) {
       addToast(error.message, 'error');

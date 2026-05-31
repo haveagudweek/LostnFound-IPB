@@ -73,8 +73,8 @@ function ItemDetail() {
   const parentPage = isFound ? 'Barang ditemukan' : 'Barang hilang';
   const parentPath = isFound ? '/found' : '/lost';
 
-  // Build image gallery (mock: use same image for thumbnails)
-  const images = [item.image, item.image];
+  // Build image gallery
+  const images = item.image ? [item.image] : [];
 
   // Generate a ref code from id
   const refCode = `IPB-${id.replace(/\D/g, '').padStart(3, '0') || '001'}`;
@@ -96,11 +96,11 @@ function ItemDetail() {
     setConfirmingClaimed(true);
     try {
       const result = await api.confirmLostItemClaimed(item.id, user);
-      setItem(result.item);
+      setItem(result);
       addToast('Barang berhasil dikonfirmasi sudah diklaim/diambil.', 'success');
       addNotification({
         title: 'Barang sudah dikonfirmasi',
-        message: `${result.item.name} sudah ditandai sebagai claimed.`,
+        message: `${result.name} sudah ditandai sebagai claimed.`,
         type: 'success',
         category: 'claim',
         userId: user?.id,
@@ -130,21 +130,23 @@ function ItemDetail() {
                 onError={(e) => { e.target.src = 'https://via.placeholder.com/600x450?text=No+Image'; }}
               />
             </div>
-            <div className="item-detail-thumbnails">
-              {images.map((img, idx) => (
-                <button
-                  key={idx}
-                  className={`item-detail-thumb ${selectedImage === idx ? 'active' : ''}`}
-                  onClick={() => setSelectedImage(idx)}
-                >
-                  <img
-                    src={img}
-                    alt={`${item.name} thumbnail ${idx + 1}`}
-                    onError={(e) => { e.target.src = 'https://via.placeholder.com/100?text=No+Image'; }}
-                  />
-                </button>
-              ))}
-            </div>
+            {images.length > 1 && (
+              <div className="item-detail-thumbnails">
+                {images.map((img, idx) => (
+                  <button
+                    key={idx}
+                    className={`item-detail-thumb ${selectedImage === idx ? 'active' : ''}`}
+                    onClick={() => setSelectedImage(idx)}
+                  >
+                    <img
+                      src={img}
+                      alt={`${item.name} thumbnail ${idx + 1}`}
+                      onError={(e) => { e.target.src = 'https://via.placeholder.com/100?text=No+Image'; }}
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* ── RIGHT: Item Info ── */}
@@ -158,15 +160,11 @@ function ItemDetail() {
               <span className="breadcrumb-current">{item.name}</span>
             </nav>
 
-            {/* Status Badge + Views */}
+            {/* Status Badge */}
             <div className="item-detail-status-row">
               <span className={`item-detail-status-badge ${statusClass}`}>
                 <span className="status-dot"></span>
                 {isClaimed ? 'SUDAH DIKLAIM' : statusLabel}
-              </span>
-              <span className="item-detail-views">
-                <Eye size={16} />
-                24 Views
               </span>
             </div>
 
