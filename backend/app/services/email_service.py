@@ -4,17 +4,17 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Konfigurasi Koneksi SMTP
+# Konfigurasi Koneksi SMTP via Internal Railway Gateway
 conf = ConnectionConfig(
-    MAIL_USERNAME=os.getenv("MAIL_USERNAME", "bot.seekem@gmail.com"),
-    MAIL_PASSWORD=os.getenv("MAIL_PASSWORD", ""),
-    MAIL_FROM=os.getenv("MAIL_FROM", "bot.seekem@gmail.com"),
-    MAIL_PORT=465,
-    MAIL_SERVER=os.getenv("MAIL_SERVER", "smtp.gmail.com"),
+    MAIL_USERNAME="", 
+    MAIL_PASSWORD="",
+    MAIL_FROM=os.getenv("MAIL_FROM", ""), 
+    MAIL_SERVER=os.getenv("GATEWAY_PRIVATE_URL", "resend-railway-gateway.railway.internal"),
+    MAIL_PORT=2525, 
     MAIL_STARTTLS=False,
-    MAIL_SSL_TLS=True,
-    USE_CREDENTIALS=True,
-    VALIDATE_CERTS=True
+    MAIL_SSL_TLS=False,
+    USE_CREDENTIALS=False,
+    VALIDATE_CERTS=False
 )
 
 class EmailService:
