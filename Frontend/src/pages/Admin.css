@@ -1274,14 +1274,12 @@
   }
 
   .admin-chart {
-    padding: 24px 12px 16px;
-    gap: 8px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    padding: 34px 12px 16px;
+    gap: 6px;
   }
 
   .admin-chart__bar-wrapper {
-    min-width: 32px;
+    min-width: 0;
   }
 
   .admin-chart__label {
