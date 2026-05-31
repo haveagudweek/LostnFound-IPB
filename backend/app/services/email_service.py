@@ -1,73 +1,69 @@
 import os
-from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
+import httpx
+from fastapi import HTTPException
 from dotenv import load_dotenv
+from jinja2 import Environment, FileSystemLoader
 
 load_dotenv()
 
-# Konfigurasi Koneksi SMTP via Internal Railway Gateway
-conf = ConnectionConfig(
-    MAIL_USERNAME="", 
-    MAIL_PASSWORD="",
-    MAIL_FROM=os.getenv("MAIL_FROM", ""), 
-    MAIL_SERVER=os.getenv("GATEWAY_PRIVATE_URL", ""),
-    MAIL_PORT=os.getenv("MAIL_PORT", ""), 
-    MAIL_STARTTLS=False,
-    MAIL_SSL_TLS=False,
-    USE_CREDENTIALS=False,
-    VALIDATE_CERTS=False
-)
+# Setup Jinja2 Environment (mencari folder templates di dalam app/)
+current_dir = os.path.dirname(os.path.abspath(__file__))
+templates_dir = os.path.join(os.path.dirname(current_dir), "templates")
+env = Environment(loader=FileSystemLoader(templates_dir))
 
 class EmailService:
     @staticmethod
     async def send_contact_email(target_email: str, reporter_name: str, item_name: str, sender_name: str, sender_whatsapp: str, message: str, item_type: str = "hilang"):
-        """
-        Mengirim email pemberitahuan ke pelapor asli dengan template HTML profesional yang menyesuaikan jenis laporan.
-        """
-        pesan_tambahan = f"<p><strong>Pesan:</strong><br>{message}</p>" if message else ""
-        
-        if item_type == "hilang":
-            email_subject = f"[SEEKEM] Informasi Penting Terkait Barang Hilang Anda: {item_name}"
-            email_intro = f"Kabar baik! Seseorang mungkin telah menemukan barang <strong>\"{item_name}\"</strong> yang Anda laporkan hilang dan ingin menghubungi Anda."
-        else:
-            email_subject = f"[SEEKEM] Ada yang Mengklaim Barang Temuan Anda: {item_name}"
-            email_intro = f"Halo! Seseorang telah mengklaim barang <strong>\"{item_name}\"</strong> yang Anda temukan dan ingin menghubungi Anda untuk verifikasi kepemilikan."
+        api_key = os.getenv("BREVO_API_KEY")
+        if not api_key:
+            print("ERROR: BREVO_API_KEY tidak ditemukan di environment.")
+            raise HTTPException(status_code=500, detail="Konfigurasi email (Brevo) belum diatur di server.")
 
-        html_content = f"""
-        <html>
-            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-                <div style="max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
-                    <div style="background-color: #1a5632; color: #ffffff; padding: 20px; text-align: center;">
-                        <h2 style="margin: 0;">SEEKEM Lost and Found</h2>
-                    </div>
-                    <div style="padding: 20px;">
-                        <p>Halo <strong>{reporter_name}</strong>,</p>
-                        <p>{email_intro}</p>
-                        
-                        <div style="background-color: #f9f9f9; padding: 15px; border-left: 4px solid #1a5632; margin-top: 20px; margin-bottom: 20px;">
-                            <p style="margin: 0;"><strong>Nama Penghubung:</strong> {sender_name}</p>
-                            <p style="margin: 5px 0 0 0;"><strong>Kontak WhatsApp:</strong> <a href="https://wa.me/{sender_whatsapp.replace('+', '')}">{sender_whatsapp}</a></p>
-                        </div>
-                        
-                        {pesan_tambahan}
-                        
-                        <p>Silakan hubungi nomor WhatsApp di atas untuk mengoordinasikan pengembalian barang Anda dengan aman.</p>
-                        <p>Terima kasih telah menggunakan SEEKEM IPB!</p>
-                    </div>
-                    <div style="background-color: #f1f1f1; padding: 10px; text-align: center; font-size: 12px; color: #666;">
-                        <p style="margin: 0;">&copy; 2026 SEEKEM IPB University. All rights reserved.</p>
-                    </div>
-                </div>
-            </body>
-        </html>
-        """
+        url = "https://api.brevo.com/v3/smtp/email"
         
-        message_schema = MessageSchema(
-            subject=email_subject,
-            recipients=[target_email],
-            body=html_content,
-            subtype=MessageType.html
+        headers = {
+            "accept": "application/json",
+            "content-type": "application/json",
+            "api-key": api_key
+        }
+        
+        # Konteks dinamis berdasarkan tipe laporan
+        if item_type == "hilang":
+            konteks = f"Seseorang mungkin telah menemukan barang Anda (<strong>{item_name}</strong>)."
+        else:
+            konteks = f"Seseorang mengklaim sebagai pemilik barang temuan Anda (<strong>{item_name}</strong>)."
+
+        # HTML Sederhana dengan blockquote untuk pesan_koordinasi (message)
+        pesan_html = f"<blockquote style='border-left: 4px solid #1a5632; padding-left: 15px; margin-left: 0; background: #f9f9f9; padding: 15px;'>{message}</blockquote>" if message else "<p><em>Tidak ada pesan khusus dari pengirim.</em></p>"
+
+        # Render HTML menggunakan Jinja2
+        template = env.get_template("email_template.html")
+        html_content = template.render(
+            reporter_name=reporter_name,
+            konteks=konteks,
+            sender_name=sender_name,
+            pesan_html=pesan_html,
+            sender_whatsapp=sender_whatsapp.replace('+', '')
         )
-        
-        fm = FastMail(conf)
-        # Akan gagal (raise Exception) jika MAIL_PASSWORD kosong, namun kita biarkan bubble up ke HTTP 500
-        await fm.send_message(message_schema)
+
+        payload = {
+            "sender": {
+                "name": "Admin SEEKEM", 
+                "email": "bot.seekem@gmail.com"
+            },
+            "to": [
+                {"email": target_email}
+            ],
+            "subject": "Notifikasi Klaim Barang - SEEKEM IPB",
+            "htmlContent": html_content
+        }
+
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.post(url, headers=headers, json=payload, timeout=15.0)
+                if response.status_code not in (200, 201):
+                    print(f"BREVO API ERROR [{response.status_code}]: {response.text}")
+                    raise HTTPException(status_code=500, detail="Gagal mengirim email via Brevo.")
+            except httpx.RequestError as e:
+                print(f"HTTPX NETWORK ERROR: {str(e)}")
+                raise HTTPException(status_code=500, detail="Terjadi kesalahan jaringan saat mencoba mengirim email.")
