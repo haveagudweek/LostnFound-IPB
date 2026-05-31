@@ -37,6 +37,12 @@ def _laporan_to_item(lap: Laporan) -> dict:
     if lap.pelapor:
         reporter_name = lap.pelapor.name
 
+    fe_claim_status = None
+    if lap.status.value == "resolved":
+        fe_claim_status = "resolved"
+    elif lap.status.value == "claimed":
+        fe_claim_status = "claimed"
+
     return {
         "id": lap.id,
         "name": lap.nama_barang,
@@ -50,6 +56,7 @@ def _laporan_to_item(lap: Laporan) -> dict:
         "reporterId": lap.pelapor_id,
         "tag": "Hilang" if lap.jenis_laporan == JenisLaporan.hilang else "Temuan",
         "reportTime": lap.created_at.strftime("%d %b %Y, %H:%M") if lap.created_at else None,
+        "claimStatus": fe_claim_status,
     }
 
 
@@ -68,10 +75,10 @@ def get_items(
       - query: pencarian teks
       - category: label kategori (string)
       - location: nama lokasi
-    Hanya mengembalikan item yang sudah published/resolved.
+    Hanya mengembalikan item yang sudah published.
     """
     q = db.query(Laporan).filter(
-        Laporan.status.in_([StatusLaporan.published, StatusLaporan.resolved])
+        Laporan.status == StatusLaporan.published
     )
 
     # Filter jenis laporan
@@ -173,14 +180,11 @@ def confirm_lost_item_claimed(
 ):
     """
     FE memanggil: PATCH /api/items/{id}/claim-confirmation
-    Digunakan ketika pelapor barang HILANG mengonfirmasi bahwa barangnya sudah ketemu sendiri.
+    Digunakan ketika pelapor mengonfirmasi bahwa laporannya sudah selesai (ketemu/dikembalikan).
     """
     lap = db.query(Laporan).filter(Laporan.id == item_id).first()
     if not lap:
         raise HTTPException(status_code=404, detail="Barang tidak ditemukan")
-
-    if lap.jenis_laporan != JenisLaporan.hilang:
-        raise HTTPException(status_code=400, detail="Konfirmasi ini hanya untuk barang hilang")
 
     if lap.pelapor_id != current_user.id:
         raise HTTPException(status_code=403, detail="Hanya pelapor yang dapat mengonfirmasi")

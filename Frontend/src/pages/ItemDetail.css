@@ -213,6 +213,11 @@
   color: var(--color-lost);
 }
 
+.item-detail-status-badge.resolved {
+  background: var(--color-gray-200);
+  color: var(--color-gray-700);
+}
+
 .status-dot {
   width: 7px;
   height: 7px;

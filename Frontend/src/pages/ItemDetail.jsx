@@ -63,13 +63,22 @@ function ItemDetail() {
 
   const isFound = item.status === 'found';
   const isClaimed = item.claimStatus === 'claimed';
+  const isResolved = item.claimStatus === 'resolved';
   const isOwnReport = Boolean(item.reporterId && item.reporterId === user?.id);
-  const canClaim = isFound && !isClaimed && !isOwnReport && !isAdmin;
-  const canConfirmClaimed = !isFound && isOwnReport && !isClaimed && !isAdmin;
-  const canContactReporter = !isOwnReport && !isAdmin;
+  const canClaim = isFound && !isClaimed && !isResolved && !isOwnReport && !isAdmin;
+  const canConfirmClaimed = isOwnReport && !isClaimed && !isResolved && !isAdmin;
+  const canContactReporter = !isOwnReport && !isResolved && !isAdmin;
   const isSingleAction = (canConfirmClaimed && !canContactReporter) || (!canContactReporter && !canClaim);
-  const statusLabel = isFound ? 'DITEMUKAN' : 'HILANG';
-  const statusClass = isFound ? 'found' : 'lost';
+  
+  let statusLabel = isFound ? 'DITEMUKAN' : 'HILANG';
+  let statusClass = isFound ? 'found' : 'lost';
+  
+  if (isResolved) {
+    statusLabel = 'SELESAI';
+    statusClass = 'resolved';
+  } else if (isClaimed) {
+    statusLabel = 'SUDAH DIKLAIM';
+  }
   const parentPage = isFound ? 'Barang ditemukan' : 'Barang hilang';
   const parentPath = isFound ? '/found' : '/lost';
 
@@ -83,9 +92,14 @@ function ItemDetail() {
   const timeLabel = isFound ? 'WAKTU DITEMUKAN' : 'WAKTU HILANG';
 
   const handleConfirmClaimed = async () => {
+    const title = isFound ? 'Konfirmasi Pengembalian' : 'Konfirmasi Pengambilan';
+    const msg = isFound 
+      ? 'Laporan barang temuan ini akan ditandai sudah dikembalikan atau diserahkan.' 
+      : 'Barang akan ditandai sudah diambil atau ketemu pada sistem.';
+
     const confirmed = await requestConfirmation({
-      title: 'Konfirmasi Pengambilan',
-      message: 'Barang akan ditandai sudah diambil atau diklaim pada sistem.',
+      title: title,
+      message: msg,
       confirmLabel: 'Konfirmasi',
     });
 
@@ -164,7 +178,7 @@ function ItemDetail() {
             <div className="item-detail-status-row">
               <span className={`item-detail-status-badge ${statusClass}`}>
                 <span className="status-dot"></span>
-                {isClaimed ? 'SUDAH DIKLAIM' : statusLabel}
+                {statusLabel}
               </span>
             </div>
 
@@ -226,7 +240,7 @@ function ItemDetail() {
               {canConfirmClaimed ? (
                 <button className="btn-action-primary" onClick={handleConfirmClaimed} disabled={confirmingClaimed}>
                   {confirmingClaimed ? <Loader2 className="spin" size={20} /> : <CheckCircle2 size={20} />}
-                  <span>{confirmingClaimed ? 'Mengonfirmasi...' : 'Konfirmasi Sudah Diambil'}</span>
+                  <span>{confirmingClaimed ? 'Mengonfirmasi...' : (isFound ? 'Tandai Sudah Dikembalikan' : 'Konfirmasi Sudah Ketemu')}</span>
                 </button>
               ) : canClaim ? (
                 <button className="btn-action-secondary" onClick={() => navigate(`/claim/${item.id}`)}>
@@ -236,7 +250,7 @@ function ItemDetail() {
               ) : (
                 <button className="btn-action-secondary" type="button" disabled>
                   <UserCheck size={20} />
-                  <span>{isClaimed ? 'Sudah Diklaim' : isFound ? 'Tidak Bisa Diklaim' : 'Hubungi Pelapor'}</span>
+                  <span>{isResolved ? 'Sudah Selesai' : isClaimed ? 'Sudah Diklaim' : isFound ? 'Tidak Bisa Diklaim' : 'Hubungi Pelapor'}</span>
                 </button>
               )}
             </div>
