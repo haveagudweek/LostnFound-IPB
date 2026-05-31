@@ -34,7 +34,11 @@ const request = async (path, options = {}) => {
   const data = contentType.includes('application/json') ? await response.json() : null;
 
   if (!response.ok) {
-    throw new Error(data?.detail || data?.message || 'Terjadi kesalahan pada server.');
+    let errorMessage = data?.detail || data?.message || 'Terjadi kesalahan pada server.';
+    if (Array.isArray(data?.detail)) {
+      errorMessage = data.detail.map(e => `${e.loc[e.loc.length-1]}: ${e.msg}`).join(', ');
+    }
+    throw new Error(errorMessage);
   }
 
   return data;
@@ -59,7 +63,11 @@ const requestFormData = async (path, options = {}) => {
   const data = contentType.includes('application/json') ? await response.json() : null;
 
   if (!response.ok) {
-    throw new Error(data?.detail || data?.message || 'Terjadi kesalahan pada server.');
+    let errorMessage = data?.detail || data?.message || 'Terjadi kesalahan pada server.';
+    if (Array.isArray(data?.detail)) {
+      errorMessage = data.detail.map(e => `${e.loc[e.loc.length-1]}: ${e.msg}`).join(', ');
+    }
+    throw new Error(errorMessage);
   }
 
   return data;
@@ -86,24 +94,20 @@ export const api = {
 
   // --- REPORTING ---
   reportItem: (data, type) => {
+    const formData = new FormData();
+    formData.append('name', data.name);
+    formData.append('category', data.category);
+    formData.append('location', data.location);
+    formData.append('time', data.time);
+    if (data.description) formData.append('description', data.description);
+    
     if (data.file instanceof File) {
-      const formData = new FormData();
-      formData.append('name', data.name);
-      formData.append('category', data.category);
-      formData.append('location', data.location);
-      formData.append('time', data.time);
-      if (data.description) formData.append('description', data.description);
       formData.append('image', data.file);
-      
-      return requestFormData(`/items/report/${type}`, {
-        method: 'POST',
-        body: formData,
-      });
     }
-
-    return request(`/items/report/${type}`, {
+    
+    return requestFormData(`/items/report/${type}`, {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: formData,
     });
   },
 

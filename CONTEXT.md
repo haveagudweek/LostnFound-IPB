@@ -16,7 +16,7 @@ Sistem menggunakan arsitektur Decoupled (Client-Server) terpisah:
 - **Backend (API Layer)**: RESTful API dibangun dengan Python dan FastAPI. Menggunakan Uvicorn sebagai ASGI server.
 - **Database (Data Layer)**: Relational Database PostgreSQL yang di-mapping menggunakan ORM SQLAlchemy.
 - **Cloud Storage**: Layanan pihak ketiga (Cloudinary) digunakan untuk menyimpan gambar bukti laporan dan klaim (Image Hosting).
-- **Notification & Mailing**: Menggunakan `httpx` untuk menembakkan notifikasi asinkronus via HTTP REST API pihak ketiga (Brevo/Sendinblue) dengan kerangka HTML berbasis Jinja2, serta sistem notifikasi In-App persisten di Database.
+- **Notification & Mailing**: Menggunakan `httpx` untuk menembakkan notifikasi asinkronus via HTTP Webhook (Google Apps Script) dengan kerangka HTML berbasis Jinja2, serta sistem notifikasi In-App persisten di Database.
 
 ## 3. Core Actors (User Roles)
 Sistem memiliki kontrol akses berbasis peran (RBAC) yang ketat:
@@ -43,7 +43,7 @@ Semua field dengan pilihan terbatas dijaga menggunakan `Enum` di PostgreSQL:
 
 ### B. Tabel-Tabel Utama
 1. **Tabel `users`**
-   - Atribut: `id` (PK), `name`, `email` (Unique), `nim`, `phone`, `password_hash`, `role`.
+   - Atribut: `id` (PK), `name`, `email` (Unique), `nim`, `phone`, `password_hash`, `role`, `is_verified`, `verification_token`.
 2. **Tabel `laporan`**
    - Atribut: `id` (PK), `pelapor_id` (FK -> users), `jenis_laporan`, `tanggal_kejadian`, `lokasi`, `deskripsi`, `nama_barang`, `kategori`, `foto_url`, `status`, `created_at`.
 3. **Tabel `klaim`**
@@ -54,18 +54,25 @@ Semua field dengan pilihan terbatas dijaga menggunakan `Enum` di PostgreSQL:
 ## 5. System Workflows (Business Logic)
 Berikut adalah alur logika yang bisa digambar menjadi *Sequence Diagram* atau *Activity Diagram*:
 
-### Flow 1: Pelaporan Barang Baru
-1. User mengisi formulir beserta foto bukti. Frontend mengirim `multipart/form-data` (bukan JSON JSON string) ke Backend.
+### Flow 1: Registrasi & Verifikasi Akun
+1. User mengisi formulir registrasi di Frontend. Frontend menembak API `POST /register`.
+2. Backend (FastAPI) menyimpan data *user* ke tabel `users` dengan status `is_verified=False` dan men-*generate* string rahasia `verification_token`.
+3. Backend menggunakan `BackgroundTasks` (agar respons ke Frontend instan tanpa *loading* lambat) untuk merakit HTML via Jinja2 dan menembak URL Webhook Google Apps Script (GAS) menggunakan `httpx`. GAS kemudian meneruskan email ke *inbox* pendaftar.
+4. User mengklik tautan verifikasi di email (`/verify-email?token=xyz`). Frontend menangkap *token* dari URL, lalu menembak `GET /verify-email?token=xyz`.
+5. Backend mencocokkan *token*. Jika valid, `is_verified` diubah menjadi `True`, *token* dihancurkan, dan akun siap digunakan untuk *Login*. Jika *user* memaksa login sebelum langkah ini, akan ditolak (`HTTP 403`).
+
+### Flow 2: Pelaporan Barang Baru
+1. User mengisi formulir beserta foto bukti. Frontend mengirim `multipart/form-data` (bukan JSON string) ke Backend.
 2. Backend menerima foto, mengunggah ke Cloudinary (`UploadService`), lalu mendapatkan string URL gambar.
 3. Backend menyimpan data laporan beserta URL gambar ke tabel `laporan` dengan status awal `Pending`.
 
-### Flow 2: Verifikasi Laporan & Katalog Publik
+### Flow 3: Verifikasi Laporan & Katalog Publik
 1. Laporan baru tidak langsung muncul di beranda publik. Laporan masuk ke antrean Dasbor Admin.
 2. Admin mengecek kelayakan foto dan deskripsi.
 3. Jika disetujui, Admin menekan "Approve". Status `laporan` menjadi `Published` dan otomatis tayang di halaman pencarian Publik.
 4. Sistem backend otomatis men-generate entitas `notifikasi` baru kepada pelapor bahwa laporannya telah dipublikasi.
 
-### Flow 3: Proses Klaim Barang
+### Flow 4: Proses Klaim Barang
 1. User mencari barang di Katalog Publik. Jika merasa miliknya, ia menekan "Klaim".
 2. User mengirim form bukti kepemilikan dan data kontak.
 3. Status `laporan` berubah menjadi `Claimed` (hilang sementara dari katalog publik agar tidak diklaim ganda).
@@ -75,13 +82,13 @@ Berikut adalah alur logika yang bisa digambar menjadi *Sequence Diagram* atau *A
    - Informasi privasi dibuka.
    - Backend menembak `Notifikasi` ke si pengklaim.
 
-### Flow 4: P2P Communication & Email Notification
+### Flow 5: P2P Communication & Email Notification
 1. Pada detail barang (setelah laporan *published* atau klaim *approved*), User bisa menekan tombol "Hubungi".
 2. Frontend menembak API `/api/laporan/{id}/hubungi` beserta data WhatsApp pengirim dan pesan teks.
 3. Backend memanggil `EmailService` melalui `BackgroundTasks` (agar *non-blocking* / cepat).
-4. `EmailService` memformat *template* HTML profesional menggunakan mesin *templating* Jinja2 (berbeda antara template *Lost* dan *Found*) dan mengirimkan email ke kotak masuk pelapor asli menggunakan protokol HTTP REST API (Brevo).
+4. `EmailService` memformat *template* HTML profesional menggunakan mesin *templating* Jinja2 (berbeda antara template *Lost* dan *Found*) dan mengirimkan email ke kotak masuk pelapor asli menggunakan protokol HTTP POST menuju Google Apps Script (GAS) Webhook.
 
-### Flow 5: Analytics & Dasbor
+### Flow 6: Analytics & Dasbor
 1. Semua proses agregasi data statistik harian/mingguan (seperti total barang hilang, diklaim, diselesaikan, *group-by* kategori) **wajib** dikalkulasi langsung di PostgreSQL menggunakan agregasi ORM (`DashboardService`).
 2. Frontend sama sekali dilarang me-load ratusan data mentah hanya untuk menghitung panjang *array*. Frontend murni sebagai penampil UI.
 

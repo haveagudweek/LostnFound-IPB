@@ -77,6 +77,11 @@ function ReportForm({ type }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!formData.file) {
+      addToast('Foto atau bukti barang wajib diunggah!', 'error');
+      return;
+    }
+
     const confirmed = await requestConfirmation({
       title: 'Submit Laporan',
       message: `Laporan ${isFound ? 'barang temuan' : 'barang hilang'} akan dikirim dan masuk ke proses verifikasi admin.`,

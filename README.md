@@ -11,7 +11,7 @@ Sistem berbasis *website* untuk mengelola, melaporkan, dan mengklaim barang hila
 ## 🛠️ Teknologi yang Digunakan
 - **Frontend**: React.js (Vite), Zustand (State Management), CSS Vanilla, Lucide Icons.
 - **Backend**: FastAPI (Python), SQLAlchemy, PostgreSQL, Alembic (Migrasi DB), JWT Authentication, Jinja2 (Email Templates).
-- **Layanan Cloud**: Cloudinary (Image Hosting), Brevo (Email REST API).
+- **Layanan Cloud**: Cloudinary (Image Hosting), Google Apps Script (Webhook Email).
 
 ---
 
@@ -88,8 +88,11 @@ CLOUDINARY_CLOUD_NAME=nama_cloud
 CLOUDINARY_API_KEY=api_key
 CLOUDINARY_API_SECRET=api_secret
 
-# Konfigurasi Email (Menggunakan Brevo REST API)
-BREVO_API_KEY=api_key_brevo_anda
+# Konfigurasi Email (Menggunakan Webhook Google Apps Script)
+GAS_EMAIL_URL=https://script.google.com/macros/s/xyz_kode_anda_xyz/exec
+
+# (Opsional) URL Frontend jika ingin verifikasi email berjalan lancar di lokal
+FRONTEND_URL=http://localhost:5173
 ```
 
 **Jalankan Migrasi Database (Alembic):**
@@ -130,4 +133,4 @@ npm run dev
 
 ## 🌐 Catatan Deployment
 - **Frontend (mis. Vercel)**: Pastikan Anda menambahkan variabel `VITE_API_BASE_URL` (contoh: `https://<URL-BACKEND>/api`) ke dashboard Vercel. Pengaturan *routing SPA* sudah di-*handle* secara *default* oleh Vercel Vite Preset.
-- **Backend (mis. Railway/Render)**: Masukkan semua kunci rahasia (Database URL, Secret Key, Cloudinary API, Brevo API) ke dalam bagian Environment Variables pada platform hosting Anda. Jangan lupa untuk menambahkan `FRONTEND_URL` agar terhindar dari *CORS Error*.
+- **Backend (mis. Railway/Render)**: Masukkan semua kunci rahasia (Database URL, Secret Key, Cloudinary API, GAS_EMAIL_URL) ke dalam bagian Environment Variables pada platform hosting Anda. Jangan lupa untuk menambahkan `FRONTEND_URL` agar terhindar dari *CORS Error* dan agar link verifikasi email ter-generate dengan benar.

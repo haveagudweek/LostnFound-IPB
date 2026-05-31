@@ -128,9 +128,8 @@ async def report_item(
     name: str = Form(...),
     category: str = Form(...),
     location: str = Form(...),
-    time: str = Form(...),
     description: str = Form(None),
-    image: UploadFile = File(None),
+    image: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
