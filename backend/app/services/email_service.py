@@ -66,3 +66,41 @@ class EmailService:
                     
             except httpx.RequestError as e:
                 print(f"HTTPX NETWORK ERROR: {str(e)}")
+
+    @staticmethod
+    async def send_verification_email(target_email: str, user_name: str, verification_link: str):
+        gas_url = os.getenv("GAS_EMAIL_URL")
+        
+        if not gas_url:
+            print("ERROR: GAS_EMAIL_URL tidak ditemukan di environment.")
+            return 
+        
+        try:
+            template = env.get_template("verification_email_template.html")
+            html_content = template.render(
+                user_name=user_name,
+                verification_link=verification_link
+            )
+        except Exception as e:
+            print(f"Jinja2 Render Error (Verification): {str(e)}")
+            return
+
+        payload = {
+            "to": target_email,
+            "subject": "Verifikasi Email Pendaftaran - SEEKEM IPB",
+            "htmlBody": html_content
+        }
+
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.post(gas_url, json=payload, follow_redirects=True, timeout=15.0)
+                if response.status_code != 200:
+                    print(f"GAS HTTP ERROR (Verification) [{response.status_code}]: {response.text}")
+                    return
+                
+                response_data = response.json()
+                if response_data.get("status") == "error":
+                    print(f"GAS Internal Script Error (Verification): {response_data.get('message')}")
+                    
+            except httpx.RequestError as e:
+                print(f"HTTPX NETWORK ERROR (Verification): {str(e)}")

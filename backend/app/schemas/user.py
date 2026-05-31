@@ -26,6 +26,7 @@ class UserResponse(BaseModel):
     nim: str
     phone: str
     role: UserRole
+    is_verified: bool
 
     class Config:
         from_attributes = True
@@ -38,6 +39,7 @@ class UserLoginResponse(BaseModel):
     nim: str
     phone: str
     role: UserRole
+    is_verified: bool
     token: str
 
     class Config:

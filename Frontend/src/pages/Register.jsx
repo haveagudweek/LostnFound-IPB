@@ -43,22 +43,18 @@ function Register() {
       return;
     }
 
-    const confirmed = await requestConfirmation({
-      title: 'Daftar Akun Baru',
-      message: 'Data akun akan dikirim untuk membuat akun SEEKEM baru.',
-      confirmLabel: 'Daftar',
-    });
-
-    if (!confirmed) {
-      return;
-    }
-
     setLoading(true);
     try {
-      const user = await api.register({ name, email, nim, phone, password });
-      login(user);
-      addToast('Registrasi berhasil! Selamat datang.', 'success');
-      navigate('/');
+      await api.register({ name, email, nim, phone, password });
+      
+      // Tampilkan popup sukses
+      await requestConfirmation({
+        title: 'Registrasi Berhasil',
+        message: 'Silakan periksa kotak masuk email Anda (atau folder Spam) untuk melakukan verifikasi akun sebelum login.',
+        confirmLabel: 'Mengerti',
+      });
+      
+      navigate('/login');
     } catch (error) {
       addToast(error.message, 'error');
     } finally {
