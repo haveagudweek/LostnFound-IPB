@@ -66,14 +66,12 @@ function SearchResults() {
   const filteredItems = useMemo(() => {
     let items = [...allItems];
 
-    // Category filter
     if (selectedCategories.length > 0) {
       items = items.filter((item) =>
         selectedCategories.includes(categoryIdFromLabel(item.category))
       );
     }
 
-    // Status filter
     if (!statusFilter.lost || !statusFilter.found) {
       items = items.filter((item) => {
         if (item.status === 'lost') return statusFilter.lost;
@@ -82,7 +80,6 @@ function SearchResults() {
       });
     }
 
-    // Location filter
     if (locationFilter && locationFilter !== 'Semua Lokasi') {
       items = items.filter((item) =>
         item.location?.toLowerCase().includes(locationFilter.toLowerCase())
@@ -160,7 +157,6 @@ function SearchResults() {
       }
       pages.push(totalPages);
     }
-    // Deduplicate
     return [...new Set(pages)];
   }
 
