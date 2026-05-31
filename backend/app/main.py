@@ -16,8 +16,6 @@ from app.api import (
     contact as contact_api,
 )
 
-Base.metadata.create_all(bind=engine)
-
 app = FastAPI(
     title="LostnFound-IPB API",
     description="API untuk sistem pelaporan kehilangan dan penemuan barang di IPB",
