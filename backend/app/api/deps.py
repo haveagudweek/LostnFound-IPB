@@ -7,7 +7,7 @@ from app.cores.config import settings
 from app.models.user import User
 from app.schemas.user import TokenData
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     credentials_exception = HTTPException(
@@ -15,16 +15,20 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    
+    if token is None:
+        raise credentials_exception
+    
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        email_ipb: str = payload.get("sub")
-        if email_ipb is None:
+        email: str = payload.get("sub")
+        if email is None:
             raise credentials_exception
-        token_data = TokenData(email_ipb=email_ipb)
+        token_data = TokenData(email=email)
     except JWTError:
         raise credentials_exception
         
-    user = db.query(User).filter(User.email_ipb == token_data.email_ipb).first()
+    user = db.query(User).filter(User.email == token_data.email).first()
     if user is None:
         raise credentials_exception
     return user
