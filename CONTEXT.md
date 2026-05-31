@@ -16,7 +16,7 @@ Sistem menggunakan arsitektur Decoupled (Client-Server) terpisah:
 - **Backend (API Layer)**: RESTful API dibangun dengan Python dan FastAPI. Menggunakan Uvicorn sebagai ASGI server.
 - **Database (Data Layer)**: Relational Database PostgreSQL yang di-mapping menggunakan ORM SQLAlchemy.
 - **Cloud Storage**: Layanan pihak ketiga (Cloudinary) digunakan untuk menyimpan gambar bukti laporan dan klaim (Image Hosting).
-- **Notification & Mailing**: Menggunakan `fastapi-mail` untuk menembakkan notifikasi via SMTP (Email), serta sistem notifikasi In-App persisten di Database.
+- **Notification & Mailing**: Menggunakan `httpx` untuk menembakkan notifikasi asinkronus via HTTP REST API pihak ketiga (Brevo/Sendinblue) dengan kerangka HTML berbasis Jinja2, serta sistem notifikasi In-App persisten di Database.
 
 ## 3. Core Actors (User Roles)
 Sistem memiliki kontrol akses berbasis peran (RBAC) yang ketat:
@@ -79,7 +79,7 @@ Berikut adalah alur logika yang bisa digambar menjadi *Sequence Diagram* atau *A
 1. Pada detail barang (setelah laporan *published* atau klaim *approved*), User bisa menekan tombol "Hubungi".
 2. Frontend menembak API `/api/laporan/{id}/hubungi` beserta data WhatsApp pengirim dan pesan teks.
 3. Backend memanggil `EmailService` melalui `BackgroundTasks` (agar *non-blocking* / cepat).
-4. `EmailService` memformat *template* HTML profesional (berbeda antara template *Lost* dan *Found*) dan mengirimkan email ke kotak masuk pelapor asli menggunakan protokol SMTP.
+4. `EmailService` memformat *template* HTML profesional menggunakan mesin *templating* Jinja2 (berbeda antara template *Lost* dan *Found*) dan mengirimkan email ke kotak masuk pelapor asli menggunakan protokol HTTP REST API (Brevo).
 
 ### Flow 5: Analytics & Dasbor
 1. Semua proses agregasi data statistik harian/mingguan (seperti total barang hilang, diklaim, diselesaikan, *group-by* kategori) **wajib** dikalkulasi langsung di PostgreSQL menggunakan agregasi ORM (`DashboardService`).
