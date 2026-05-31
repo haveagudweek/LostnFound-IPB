@@ -1,6 +1,5 @@
 import os
 import httpx
-from fastapi import HTTPException
 from dotenv import load_dotenv
 from jinja2 import Environment, FileSystemLoader
 
@@ -14,18 +13,13 @@ env = Environment(loader=FileSystemLoader(templates_dir))
 class EmailService:
     @staticmethod
     async def send_contact_email(target_email: str, reporter_name: str, item_name: str, sender_name: str, sender_whatsapp: str, message: str, item_type: str = "hilang"):
-        api_key = os.getenv("BREVO_API_KEY")
-        if not api_key:
-            print("ERROR: BREVO_API_KEY tidak ditemukan di environment.")
-            raise HTTPException(status_code=500, detail="Konfigurasi email (Brevo) belum diatur di server.")
-
-        url = "https://api.brevo.com/v3/smtp/email"
+        # Ambil URL GAS dari environment Railway
+        gas_url = os.getenv("GAS_EMAIL_URL")
         
-        headers = {
-            "accept": "application/json",
-            "content-type": "application/json",
-            "api-key": api_key
-        }
+        if not gas_url:
+            print("ERROR: GAS_EMAIL_URL tidak ditemukan di environment.")
+            # Hanya print error, jangan di-raise agar ASGI server tidak crash
+            return 
         
         # Konteks dinamis berdasarkan tipe laporan
         if item_type == "hilang":
@@ -36,34 +30,39 @@ class EmailService:
         # HTML Sederhana dengan blockquote untuk pesan_koordinasi (message)
         pesan_html = f"<blockquote style='border-left: 4px solid #1a5632; padding-left: 15px; margin-left: 0; background: #f9f9f9; padding: 15px;'>{message}</blockquote>" if message else "<p><em>Tidak ada pesan khusus dari pengirim.</em></p>"
 
-        # Render HTML menggunakan Jinja2
-        template = env.get_template("email_template.html")
-        html_content = template.render(
-            reporter_name=reporter_name,
-            konteks=konteks,
-            sender_name=sender_name,
-            pesan_html=pesan_html,
-            sender_whatsapp=sender_whatsapp.replace('+', '')
-        )
+        try:
+            # Render HTML menggunakan Jinja2
+            template = env.get_template("email_template.html")
+            html_content = template.render(
+                reporter_name=reporter_name,
+                konteks=konteks,
+                sender_name=sender_name,
+                pesan_html=pesan_html,
+                sender_whatsapp=sender_whatsapp.replace('+', '')
+            )
+        except Exception as e:
+            print(f"Jinja2 Render Error: {str(e)}")
+            return
 
+        # Sesuaikan struktur JSON dengan apa yang diminta oleh Google Apps Script
         payload = {
-            "sender": {
-                "name": "Admin SEEKEM", 
-                "email": "bot.seekem@gmail.com"
-            },
-            "to": [
-                {"email": target_email}
-            ],
+            "to": target_email,
             "subject": "Notifikasi Klaim Barang - SEEKEM IPB",
-            "htmlContent": html_content
+            "htmlBody": html_content
         }
 
         async with httpx.AsyncClient() as client:
             try:
-                response = await client.post(url, headers=headers, json=payload, timeout=15.0)
-                if response.status_code not in (200, 201):
-                    print(f"BREVO API ERROR [{response.status_code}]: {response.text}")
-                    raise HTTPException(status_code=500, detail="Gagal mengirim email via Brevo.")
+                # follow_redirects=True sangat penting karena GAS selalu meredirect response
+                response = await client.post(gas_url, json=payload, follow_redirects=True, timeout=15.0)
+                
+                if response.status_code != 200:
+                    print(f"GAS HTTP ERROR [{response.status_code}]: {response.text}")
+                    return
+                
+                response_data = response.json()
+                if response_data.get("status") == "error":
+                    print(f"GAS Internal Script Error: {response_data.get('message')}")
+                    
             except httpx.RequestError as e:
                 print(f"HTTPX NETWORK ERROR: {str(e)}")
-                raise HTTPException(status_code=500, detail="Terjadi kesalahan jaringan saat mencoba mengirim email.")
