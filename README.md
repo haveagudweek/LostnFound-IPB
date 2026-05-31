@@ -6,12 +6,45 @@ Sistem berbasis *website* untuk mengelola, melaporkan, dan mengklaim barang hila
 - **Sistem Klaim**: Bukti kepemilikan diperlukan sebelum klaim disetujui.
 - **Dashboard Admin**: Pengelolaan data laporan, verifikasi klaim, dan *monitoring* metrik harian.
 - **Katalog Publik**: Etalase barang yang terverifikasi bisa dicari dan disaring berdasarkan lokasi/kategori.
-- **Notifikasi In-App**: Pemberitahuan interaktif saat laporan disetujui, ditolak, atau ada pesan baru.
+- **Notifikasi Email & In-App**: Pemberitahuan otomatis ketika barang diklaim, disetujui, atau dibatalkan.
 
 ## 🛠️ Teknologi yang Digunakan
 - **Frontend**: React.js (Vite), Zustand (State Management), CSS Vanilla, Lucide Icons.
-- **Backend**: FastAPI (Python), SQLAlchemy, PostgreSQL, JWT Authentication.
-- **Layanan Cloud**: Cloudinary (Penyimpanan Foto).
+- **Backend**: FastAPI (Python), SQLAlchemy, PostgreSQL, Alembic (Migrasi DB), JWT Authentication, Jinja2 (Email Templates).
+- **Layanan Cloud**: Cloudinary (Image Hosting), Brevo (Email REST API).
+
+---
+
+## 📁 Struktur Folder Utama
+```text
+LostnFound-IPB/
+├── backend/                  # Server-side code (FastAPI)
+│   ├── alembic/              # File migrasi database
+│   ├── app/
+│   │   ├── api/              # Endpoint router/controller
+│   │   ├── core/             # Konfigurasi utama & keamanan (JWT)
+│   │   ├── models/           # Definisi tabel SQLAlchemy
+│   │   ├── schemas/          # Validasi data Pydantic
+│   │   ├── services/         # Logika bisnis (EmailService, dll.)
+│   │   └── templates/        # Template HTML (mis. email_template.html)
+│   ├── alembic.ini           # Konfigurasi koneksi Alembic
+│   └── requirements.txt      # Dependensi Python
+│
+├── Frontend/                 # Client-side code (React + Vite)
+│   ├── public/               # Aset statis (gambar, favicon)
+│   ├── src/
+│   │   ├── components/       # Komponen UI modular
+│   │   ├── pages/            # Halaman utama aplikasi
+│   │   ├── services/         # Konfigurasi Axios & pemanggilan API
+│   │   └── store/            # State management (Zustand)
+│   ├── package.json          # Dependensi Node.js
+│   └── vite.config.js        # Konfigurasi build Vite
+│
+├── CONTEXT.md                # Blueprint dan Arsitektur Sistem
+└── README.md                 # Panduan instalasi (Dokumen ini)
+```
+
+---
 
 ## 🚀 Prasyarat
 Pastikan komputer Anda sudah terinstal:
@@ -55,12 +88,14 @@ CLOUDINARY_CLOUD_NAME=nama_cloud
 CLOUDINARY_API_KEY=api_key
 CLOUDINARY_API_SECRET=api_secret
 
-# Konfigurasi SMTP (Untuk Fitur Hubungi Pelapor)
-MAIL_USERNAME=email_anda@gmail.com
-MAIL_PASSWORD=password_app_gmail_anda
-MAIL_FROM=email_anda@gmail.com
-MAIL_PORT=465
-MAIL_SERVER=smtp.gmail.com
+# Konfigurasi Email (Menggunakan Brevo REST API)
+BREVO_API_KEY=api_key_brevo_anda
+```
+
+**Jalankan Migrasi Database (Alembic):**
+Sebelum menjalankan server, Anda wajib meng-generate tabel-tabel di database menggunakan Alembic:
+```bash
+alembic upgrade head
 ```
 
 Jalankan server backend:
@@ -82,7 +117,7 @@ npm install
 
 Siapkan koneksi ke API. Buat file `.env` di dalam folder `Frontend/`:
 ```env
-VITE_API_URL=http://localhost:8000
+VITE_API_BASE_URL=http://localhost:8000/api
 ```
 
 Jalankan server frontend:
@@ -94,5 +129,5 @@ npm run dev
 ---
 
 ## 🌐 Catatan Deployment
-- **Frontend (mis. Vercel)**: Pastikan Anda menambahkan variabel `VITE_API_URL` ke URL backend production Anda di dashboard Vercel. File konfigurasi *rewrite routing SPA* (`vercel.json`) sudah ada di folder Frontend untuk mencegah error *404 Not Found*.
-- **Backend (mis. Railway/Render)**: Masukkan semua kunci rahasia (Database URL, Secret Key, Cloudinary API) ke dalam bagian Environment Variables pada platform hosting Anda.
+- **Frontend (mis. Vercel)**: Pastikan Anda menambahkan variabel `VITE_API_BASE_URL` (contoh: `https://<URL-BACKEND>/api`) ke dashboard Vercel. Pengaturan *routing SPA* sudah di-*handle* secara *default* oleh Vercel Vite Preset.
+- **Backend (mis. Railway/Render)**: Masukkan semua kunci rahasia (Database URL, Secret Key, Cloudinary API, Brevo API) ke dalam bagian Environment Variables pada platform hosting Anda. Jangan lupa untuk menambahkan `FRONTEND_URL` agar terhindar dari *CORS Error*.
