@@ -10,7 +10,7 @@ from app.api.deps import get_current_user
 
 router = APIRouter()
 
-@router.get("/", response_model=List[NotifikasiResponse])
+@router.get("", response_model=List[NotifikasiResponse])
 def get_my_notifikasi(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)

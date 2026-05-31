@@ -53,7 +53,7 @@ def _laporan_to_item(lap: Laporan) -> dict:
     }
 
 
-@router.get("/", response_model=List[ItemResponse])
+@router.get("", response_model=List[ItemResponse])
 def get_items(
     type: str = "all",
     query: str = "",
