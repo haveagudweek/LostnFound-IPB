@@ -21,31 +21,31 @@ import './History.css';
 
 const statusConfig = {
   pending_verification: {
-    label: 'Menunggu Verifikasi',
+    label: 'Pending',
     tone: 'warning',
     icon: Clock3,
     description: 'Laporan sedang dicek admin sebelum tampil ke katalog.',
   },
   verified: {
-    label: 'Terverifikasi',
+    label: 'Published',
     tone: 'success',
     icon: CheckCircle2,
     description: 'Laporan sudah disetujui dan dapat ditindaklanjuti.',
   },
   rejected: {
-    label: 'Ditolak',
+    label: 'Rejected',
     tone: 'danger',
     icon: XCircle,
     description: 'Laporan atau klaim tidak lolos verifikasi admin.',
   },
   pending: {
-    label: 'Klaim Diproses',
+    label: 'Pending',
     tone: 'warning',
     icon: Clock3,
     description: 'Klaim sedang diperiksa oleh admin.',
   },
   approved: {
-    label: 'Klaim Disetujui',
+    label: 'Approved',
     tone: 'success',
     icon: ShieldCheck,
     description: 'Klaim sudah disetujui. Ikuti instruksi pengambilan dari admin.',

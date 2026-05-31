@@ -61,8 +61,19 @@ function AdminRoute({ children }) {
 
 function PublicOnlyRoute({ children }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isAdmin = useAuthStore((state) => state.isAdmin);
+  const location = useLocation();
 
   if (isAuthenticated) {
+    if (isAdmin) {
+      return <Navigate to="/admin" replace />;
+    }
+    
+    const redirectFrom = location.state?.from;
+    if (redirectFrom) {
+      return <Navigate to={`${redirectFrom.pathname}${redirectFrom.search || ''}`} replace />;
+    }
+    
     return <Navigate to="/" replace />;
   }
 

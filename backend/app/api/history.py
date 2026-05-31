@@ -31,10 +31,17 @@ def get_user_history(
     reports_res = []
     for lap in laporans:
         item_res = _laporan_to_item(lap)
-        # FE History page expects 'itemId' property to exist for reports
         item_dict = item_res
         item_dict["itemId"] = item_dict["id"]
-        # FE also expects 'reportId' and 'tag' sometimes, but we map it as closely as possible
+        
+        # Override status to verification status so History FE can map it
+        if lap.status.value == "pending":
+            item_dict["status"] = "pending_verification"
+        elif lap.status.value == "published":
+            item_dict["status"] = "verified"
+        else:
+            item_dict["status"] = lap.status.value
+            
         reports_res.append(item_dict)
 
     # Ambil Klaim

@@ -43,10 +43,10 @@ function Login() {
       const user = await api.login({ email, password });
       login(user);
       addToast(`Selamat datang kembali, ${user.name}!`, 'success');
-      if (redirectTo) {
-        navigate(redirectTo, { replace: true });
-      } else if (user.role === 'admin') {
+      if (user.role === 'admin') {
         navigate('/admin');
+      } else if (redirectTo) {
+        navigate(redirectTo, { replace: true });
       } else {
         navigate('/');
       }
