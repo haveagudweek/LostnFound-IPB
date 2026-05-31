@@ -80,6 +80,7 @@ def login_user(login_data: UserLogin, db: Session = Depends(get_db)) -> Any:
         nim=user.nim,
         phone=user.phone,
         role=user.role,
+        is_verified=user.is_verified,
         token=access_token,
     )
 
