@@ -28,10 +28,12 @@ import AdminPostedItems from './pages/AdminPostedItems';
 import AdminClaims from './pages/AdminClaims';
 import AdminClaimDetail from './pages/AdminClaimDetail';
 import VerifyEmail from './pages/VerifyEmail';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import { useAuthStore } from './store/authStore';
 
 /* Routes where Navbar & Footer should be hidden */
-const AUTH_ROUTES = ['/login', '/register', '/verify-email'];
+const AUTH_ROUTES = ['/login', '/register', '/verify-email', '/forgot-password', '/reset-password'];
 
 function ProtectedRoute({ children }) {
   const location = useLocation();
@@ -94,6 +96,8 @@ function App() {
         <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
         <Route path="/register" element={<PublicOnlyRoute><Register /></PublicOnlyRoute>} />
         <Route path="/verify-email" element={<PublicOnlyRoute><VerifyEmail /></PublicOnlyRoute>} />
+        <Route path="/forgot-password" element={<PublicOnlyRoute><ForgotPassword /></PublicOnlyRoute>} />
+        <Route path="/reset-password" element={<PublicOnlyRoute><ResetPassword /></PublicOnlyRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         
         <Route path="/lost" element={<ProtectedRoute><ItemsPage type="lost" /></ProtectedRoute>} />

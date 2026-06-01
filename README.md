@@ -6,7 +6,7 @@ Sistem berbasis *website* untuk mengelola, melaporkan, dan mengklaim barang hila
 - **Sistem Klaim**: Bukti kepemilikan diperlukan sebelum klaim disetujui.
 - **Dashboard Admin**: Pengelolaan data laporan, verifikasi klaim, dan *monitoring* metrik harian.
 - **Katalog Publik**: Etalase barang yang terverifikasi bisa dicari dan disaring berdasarkan lokasi/kategori.
-- **Verifikasi Email**: Akun baru harus diverifikasi melalui email sebelum bisa login. Token berlaku 24 jam dengan fitur kirim ulang.
+- **Verifikasi Email & Lupa Password**: Autentikasi aman melalui verifikasi pendaftaran email dan fitur *reset password* dengan tautan dinamis.
 - **Notifikasi Email & In-App**: Pemberitahuan otomatis ketika barang diklaim, disetujui, atau dibatalkan.
 
 ## 🛠️ Teknologi yang Digunakan

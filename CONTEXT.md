@@ -43,7 +43,7 @@ Semua field dengan pilihan terbatas dijaga menggunakan `Enum` di PostgreSQL:
 
 ### B. Tabel-Tabel Utama
 1. **Tabel `users`**
-   - Atribut: `id` (PK), `name`, `email` (Unique), `nim`, `phone`, `password_hash`, `role`, `is_verified`, `verification_token`, `verification_token_created_at`.
+   - Atribut: `id` (PK), `name`, `email` (Unique), `nim`, `phone`, `password_hash`, `role`, `is_verified`, `verification_token`, `verification_token_created_at`, `reset_token`, `reset_token_expires`.
 2. **Tabel `laporan`**
    - Atribut: `id` (PK), `pelapor_id` (FK -> users), `jenis_laporan`, `tanggal_kejadian`, `lokasi`, `deskripsi`, `nama_barang`, `kategori`, `foto_url`, `status`, `created_at`.
 3. **Tabel `klaim`**
@@ -63,18 +63,25 @@ Berikut adalah alur logika yang bisa digambar menjadi *Sequence Diagram* atau *A
 6. Jika *user* memaksa login sebelum verifikasi, akan ditolak (`HTTP 403`). Halaman Login otomatis menampilkan banner "Kirim Ulang Email Verifikasi" dengan *cooldown* 60 detik.
 7. Endpoint `POST /resend-verification` meng-*generate* token baru, me-*reset* waktu kedaluwarsa, dan mengirim ulang email. Endpoint ini dilindungi oleh *rate limiting* sisi server (minimal 60 detik antar permintaan) serta respons generik (tidak membocorkan apakah email terdaftar atau tidak) demi keamanan.
 
-### Flow 2: Pelaporan Barang Baru
+### Flow 2: Lupa & Atur Ulang Kata Sandi (Forgot Password)
+1. User menekan tautan "Lupa Password?" di halaman Login dan memasukkan alamat email yang terdaftar. Frontend menembak API `POST /auth/forgot-password`.
+2. Backend memvalidasi eksistensi user dan memastikan cooldown (60 detik) belum aktif. Backend men-generate `reset_token`, menset kedaluwarsa 15 menit, menyimpannya di DB, lalu menjalankan pengiriman email (via GAS Webhook) menggunakan `BackgroundTasks`.
+3. User mendapatkan link atur ulang sandi (`/reset-password?token=xyz`) di email mereka.
+4. User mengklik link, Frontend menangkap *token*, lalu user memasukkan *password baru* dan konfirmasinya. Frontend menembak `POST /auth/reset-password`.
+5. Backend memvalidasi eksistensi token dan kedaluwarsanya. Jika valid, password baru akan di-hash dan disimpan. `reset_token` dikosongkan. User diarahkan untuk kembali Login.
+
+### Flow 3: Pelaporan Barang Baru
 1. User mengisi formulir beserta foto bukti. Frontend mengirim `multipart/form-data` (bukan JSON string) ke Backend.
 2. Backend menerima foto, mengunggah ke Cloudinary (`UploadService`), lalu mendapatkan string URL gambar.
 3. Backend menyimpan data laporan beserta URL gambar ke tabel `laporan` dengan status awal `Pending`.
 
-### Flow 3: Verifikasi Laporan & Katalog Publik
+### Flow 4: Verifikasi Laporan & Katalog Publik
 1. Laporan baru tidak langsung muncul di beranda publik. Laporan masuk ke antrean Dasbor Admin.
 2. Admin mengecek kelayakan foto dan deskripsi.
 3. Jika disetujui, Admin menekan "Approve". Status `laporan` menjadi `Published` dan otomatis tayang di halaman pencarian Publik.
 4. Sistem backend otomatis men-generate entitas `notifikasi` baru kepada pelapor bahwa laporannya telah dipublikasi.
 
-### Flow 4: Proses Klaim Barang
+### Flow 5: Proses Klaim Barang
 1. User mencari barang di Katalog Publik. Jika merasa miliknya, ia menekan "Klaim".
 2. User mengirim form bukti kepemilikan dan data kontak.
 3. Status `laporan` berubah menjadi `Claimed` (hilang sementara dari katalog publik agar tidak diklaim ganda).
@@ -84,13 +91,13 @@ Berikut adalah alur logika yang bisa digambar menjadi *Sequence Diagram* atau *A
    - Informasi privasi dibuka.
    - Backend menembak `Notifikasi` ke si pengklaim.
 
-### Flow 5: P2P Communication & Email Notification
+### Flow 6: P2P Communication & Email Notification
 1. Pada detail barang (setelah laporan *published* atau klaim *approved*), User bisa menekan tombol "Hubungi".
 2. Frontend menembak API `/api/laporan/{id}/hubungi` beserta data WhatsApp pengirim dan pesan teks.
 3. Backend memanggil `EmailService` melalui `BackgroundTasks` (agar *non-blocking* / cepat).
 4. `EmailService` memformat *template* HTML profesional menggunakan mesin *templating* Jinja2 (berbeda antara template *Lost* dan *Found*) dan mengirimkan email ke kotak masuk pelapor asli menggunakan protokol HTTP POST menuju Google Apps Script (GAS) Webhook.
 
-### Flow 6: Analytics & Dasbor
+### Flow 7: Analytics & Dasbor
 1. Semua proses agregasi data statistik harian/mingguan (seperti total barang hilang, diklaim, diselesaikan, *group-by* kategori) **wajib** dikalkulasi langsung di PostgreSQL menggunakan agregasi ORM (`DashboardService`).
 2. Frontend sama sekali dilarang me-load ratusan data mentah hanya untuk menghitung panjang *array*. Frontend murni sebagai penampil UI.
 

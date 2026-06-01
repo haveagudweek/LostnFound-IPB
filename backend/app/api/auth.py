@@ -8,7 +8,7 @@ import os
 
 from app.cores.database import get_db
 from app.models.user import User
-from app.schemas.user import UserCreate, UserResponse, UserLogin, UserLoginResponse
+from app.schemas.user import UserCreate, UserResponse, UserLogin, UserLoginResponse, ForgotPasswordRequest, ResetPasswordRequest
 from app.utils.security import get_password_hash, verify_password, create_access_token
 from app.api.deps import get_current_user
 from app.services.email_service import EmailService
@@ -182,3 +182,65 @@ def resend_verification(
     _generate_and_send_verification(user, background_tasks, db)
 
     return {"status": "success", "message": success_msg}
+
+
+@router.post("/forgot-password")
+def forgot_password(
+    body: ForgotPasswordRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    user = db.query(User).filter(User.email == body.email).first()
+    
+    success_msg = "Jika email terdaftar, tautan untuk mengatur ulang kata sandi telah dikirim."
+
+    if not user:
+        # Return success even if user not found to prevent email enumeration
+        return {"status": "success", "message": success_msg}
+
+    # Cek rate limit untuk forgot password (minimal 60 detik)
+    if user.reset_token_expires:
+        # Token valid 15 menit, jadi kita hitung selisih dari 15 menit yang lalu jika masih berlaku.
+        # Lebih aman simpan reset_token_created_at, atau hitung dari expires
+        elapsed = (user.reset_token_expires - timedelta(minutes=15)) - datetime.utcnow()
+        # Jika selisih < 60 detik, tolak
+        if elapsed.total_seconds() > -60:
+            raise HTTPException(
+                status_code=429,
+                detail="Harap tunggu 60 detik sebelum meminta reset password ulang."
+            )
+
+    reset_token = secrets.token_urlsafe(32)
+    user.reset_token = reset_token
+    user.reset_token_expires = datetime.utcnow() + timedelta(minutes=15)
+    db.commit()
+
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+    reset_link = f"{frontend_url}/reset-password?token={reset_token}"
+
+    background_tasks.add_task(
+        EmailService.send_reset_password_email,
+        target_email=user.email,
+        user_name=user.name,
+        reset_link=reset_link,
+    )
+
+    return {"status": "success", "message": success_msg}
+
+
+@router.post("/reset-password")
+def reset_password(body: ResetPasswordRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.reset_token == body.token).first()
+    
+    if not user:
+        raise HTTPException(status_code=400, detail="Token reset password tidak valid atau sudah kedaluwarsa.")
+        
+    if not user.reset_token_expires or datetime.utcnow() > user.reset_token_expires:
+        raise HTTPException(status_code=400, detail="Token reset password sudah kedaluwarsa. Silakan minta tautan baru.")
+
+    user.password_hash = get_password_hash(body.new_password)
+    user.reset_token = None
+    user.reset_token_expires = None
+    db.commit()
+
+    return {"status": "success", "message": "Kata sandi berhasil diatur ulang. Silakan login dengan kata sandi baru Anda."}
