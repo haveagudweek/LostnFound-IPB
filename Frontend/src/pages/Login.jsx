@@ -15,7 +15,22 @@ function Login() {
   // State untuk fitur resend verification
   const [showResend, setShowResend] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
-  const [resendCooldown, setResendCooldown] = useState(0);
+  
+  // Ambil state awal dari localStorage jika ada
+  const [resendCooldown, setResendCooldown] = useState(() => {
+    const saved = localStorage.getItem('resend_verif_cooldown');
+    if (saved) {
+      const remaining = Math.ceil((parseInt(saved) - Date.now()) / 1000);
+      return remaining > 0 ? remaining : 0;
+    }
+    return 0;
+  });
+
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      setShowResend(true);
+    }
+  }, [resendCooldown]);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -26,7 +41,18 @@ function Login() {
 
   // Countdown timer untuk cooldown resend
   useEffect(() => {
-    if (resendCooldown <= 0) return;
+    if (resendCooldown <= 0) {
+      localStorage.removeItem('resend_verif_cooldown');
+      return;
+    }
+    
+    // Simpan ke local storage agar persisten
+    const expireTime = Date.now() + (resendCooldown * 1000);
+    const saved = localStorage.getItem('resend_verif_cooldown');
+    if (!saved || Math.abs(parseInt(saved) - expireTime) > 2000) {
+       localStorage.setItem('resend_verif_cooldown', expireTime.toString());
+    }
+
     const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
     return () => clearTimeout(timer);
   }, [resendCooldown]);
@@ -71,6 +97,7 @@ function Login() {
       await api.resendVerification(email);
       addToast('Email verifikasi telah dikirim ulang. Cek kotak masuk atau folder Spam Anda.', 'success');
       setResendCooldown(60);
+      localStorage.setItem('resend_verif_cooldown', (Date.now() + 60000).toString());
     } catch (error) {
       addToast(error.message, 'error');
     } finally {

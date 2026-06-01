@@ -13,10 +13,38 @@ function ForgotPassword() {
 
   const [showResend, setShowResend] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
-  const [resendCooldown, setResendCooldown] = useState(0);
+  
+  // Ambil state awal dari localStorage jika ada
+  const [resendCooldown, setResendCooldown] = useState(() => {
+    const saved = localStorage.getItem('forgot_pwd_cooldown');
+    if (saved) {
+      const remaining = Math.ceil((parseInt(saved) - Date.now()) / 1000);
+      return remaining > 0 ? remaining : 0;
+    }
+    return 0;
+  });
 
   useEffect(() => {
-    if (resendCooldown <= 0) return;
+    // Jika timer masih berjalan, kita asumsikan showResend harus true
+    if (resendCooldown > 0) {
+      setShowResend(true);
+    }
+  }, [resendCooldown]);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) {
+      localStorage.removeItem('forgot_pwd_cooldown');
+      return;
+    }
+    
+    // Simpan ke local storage agar persisten
+    const expireTime = Date.now() + (resendCooldown * 1000);
+    // Hanya simpan di awal atau jika belum tersimpan dengan benar
+    const saved = localStorage.getItem('forgot_pwd_cooldown');
+    if (!saved || Math.abs(parseInt(saved) - expireTime) > 2000) {
+       localStorage.setItem('forgot_pwd_cooldown', expireTime.toString());
+    }
+
     const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
     return () => clearTimeout(timer);
   }, [resendCooldown]);
@@ -35,6 +63,7 @@ function ForgotPassword() {
       addToast(response.message || 'Tautan reset password telah dikirim ke email Anda.', 'success');
       setShowResend(true);
       setResendCooldown(60);
+      localStorage.setItem('forgot_pwd_cooldown', (Date.now() + 60000).toString());
     } catch (error) {
       addToast(error.message || 'Gagal mengirim tautan reset password.', 'error');
     } finally {
@@ -50,6 +79,7 @@ function ForgotPassword() {
       await api.forgotPassword(email);
       addToast('Tautan reset password telah dikirim ulang. Cek kotak masuk Anda.', 'success');
       setResendCooldown(60);
+      localStorage.setItem('forgot_pwd_cooldown', (Date.now() + 60000).toString());
     } catch (error) {
       addToast(error.message, 'error');
     } finally {

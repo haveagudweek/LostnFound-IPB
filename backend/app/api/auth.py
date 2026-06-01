@@ -24,22 +24,29 @@ class ResendVerificationRequest(BaseModel):
 
 # Simple in-memory rate limiter for forgot password requests
 forgot_password_requests = {}
+resend_verification_requests = {}
 
-def check_rate_limit(email: str):
+def check_rate_limit(email: str, requests_dict: dict, max_requests: int = 5, hours: int = 1):
     now = datetime.utcnow()
-    # Clean up old entries (older than 1 hour)
-    if email in forgot_password_requests:
-        forgot_password_requests[email] = [req for req in forgot_password_requests[email] if now - req < timedelta(hours=1)]
+    # Clean up old entries
+    if email in requests_dict:
+        requests_dict[email] = [req for req in requests_dict[email] if now - req < timedelta(hours=hours)]
     else:
-        forgot_password_requests[email] = []
+        requests_dict[email] = []
 
-    if len(forgot_password_requests[email]) >= 5:
+    if len(requests_dict[email]) >= max_requests:
         raise HTTPException(
             status_code=429,
-            detail="Anda telah mencapai batas maksimal permintaan reset password (5 kali per jam). Silakan coba lagi nanti."
+            detail=f"Anda telah mencapai batas maksimal permintaan ({max_requests} kali per jam). Silakan coba lagi nanti."
         )
     
-    forgot_password_requests[email].append(now)
+    requests_dict[email].append(now)
+
+def check_forgot_pwd_rate_limit(email: str):
+    check_rate_limit(email, forgot_password_requests)
+
+def check_resend_verif_rate_limit(email: str):
+    check_rate_limit(email, resend_verification_requests)
 
 
 def _generate_and_send_verification(user: User, background_tasks: BackgroundTasks, db: Session):
@@ -177,6 +184,7 @@ def resend_verification(
     FE mengirim JSON: { email }
     Cooldown 60 detik ditangani di sisi Frontend.
     """
+    check_resend_verif_rate_limit(body.email)
     user = db.query(User).filter(User.email == body.email).first()
 
     # Untuk keamanan, selalu kembalikan pesan sukses agar attacker
@@ -209,7 +217,7 @@ def forgot_password(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
-    check_rate_limit(body.email)
+    check_forgot_pwd_rate_limit(body.email)
     user = db.query(User).filter(User.email == body.email).first()
     
     success_msg = "Jika email terdaftar, tautan untuk mengatur ulang kata sandi telah dikirim."
