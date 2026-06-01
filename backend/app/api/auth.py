@@ -22,6 +22,25 @@ VERIFICATION_TOKEN_EXPIRE_HOURS = 24
 class ResendVerificationRequest(BaseModel):
     email: EmailStr
 
+# Simple in-memory rate limiter for forgot password requests
+forgot_password_requests = {}
+
+def check_rate_limit(email: str):
+    now = datetime.utcnow()
+    # Clean up old entries (older than 1 hour)
+    if email in forgot_password_requests:
+        forgot_password_requests[email] = [req for req in forgot_password_requests[email] if now - req < timedelta(hours=1)]
+    else:
+        forgot_password_requests[email] = []
+
+    if len(forgot_password_requests[email]) >= 5:
+        raise HTTPException(
+            status_code=429,
+            detail="Anda telah mencapai batas maksimal permintaan reset password (5 kali per jam). Silakan coba lagi nanti."
+        )
+    
+    forgot_password_requests[email].append(now)
+
 
 def _generate_and_send_verification(user: User, background_tasks: BackgroundTasks, db: Session):
     """Helper: generate token baru, simpan ke DB, kirim email verifikasi."""
@@ -190,6 +209,7 @@ def forgot_password(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
+    check_rate_limit(body.email)
     user = db.query(User).filter(User.email == body.email).first()
     
     success_msg = "Jika email terdaftar, tautan untuk mengatur ulang kata sandi telah dikirim."

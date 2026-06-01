@@ -93,7 +93,7 @@ function ForgotPassword() {
             </div>
           </div>
 
-          <button type="submit" className="auth-submit" disabled={loading}>
+          <button type="submit" className="auth-submit" disabled={loading || resendCooldown > 0}>
             {loading ? (
               <Loader2 className="spin" size={20} />
             ) : (
