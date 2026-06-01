@@ -78,7 +78,7 @@ function ForgotPassword() {
 
         <form className="auth-form" onSubmit={handleSubmit}>
           <div className="auth-form-group">
-            <label className="auth-form-group__label" htmlFor="forgot-email">EMAIL</label>
+            <label className="auth-form-group__label" htmlFor="forgot-email">EMAIL <span style={{ color: 'red' }}>*</span></label>
             <div className="auth-input-wrapper">
               <Mail size={18} className="auth-input-icon" />
               <input

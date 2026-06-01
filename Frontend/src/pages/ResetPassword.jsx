@@ -69,7 +69,7 @@ function ResetPassword() {
 
         <form className="auth-form" onSubmit={handleSubmit}>
           <div className="auth-form-group">
-            <label className="auth-form-group__label" htmlFor="new-password">PASSWORD BARU</label>
+            <label className="auth-form-group__label" htmlFor="new-password">PASSWORD BARU <span style={{ color: 'red' }}>*</span></label>
             <div className="auth-input-wrapper">
               <KeyRound size={18} className="auth-input-icon" />
               <input
@@ -85,7 +85,7 @@ function ResetPassword() {
           </div>
 
           <div className="auth-form-group">
-            <label className="auth-form-group__label" htmlFor="confirm-password">KONFIRMASI PASSWORD</label>
+            <label className="auth-form-group__label" htmlFor="confirm-password">KONFIRMASI PASSWORD <span style={{ color: 'red' }}>*</span></label>
             <div className="auth-input-wrapper">
               <KeyRound size={18} className="auth-input-icon" />
               <input

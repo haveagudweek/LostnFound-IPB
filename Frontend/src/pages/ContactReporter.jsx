@@ -127,7 +127,7 @@ function ContactReporter() {
           <form className="contact-form" onSubmit={handleSubmit}>
             <div className="contact-form__row">
               <div className="contact-field">
-                <label htmlFor="contact-name">Nama Lengkap <span>*</span></label>
+                <label htmlFor="contact-name">Nama Lengkap <span style={{ color: 'red' }}>*</span></label>
                 <input
                   id="contact-name"
                   type="text"
@@ -139,7 +139,7 @@ function ContactReporter() {
               </div>
 
               <div className="contact-field">
-                <label htmlFor="contact-whatsapp">Kontak (Whatsapp) <span>*</span></label>
+                <label htmlFor="contact-whatsapp">Kontak (Whatsapp) <span style={{ color: 'red' }}>*</span></label>
                 <div className={`contact-input-shell ${isPhoneInvalid ? 'contact-input-shell--error' : ''}`}>
                   <input
                     id="contact-whatsapp"

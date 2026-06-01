@@ -33,6 +33,11 @@ function Register() {
       return;
     }
 
+    if (!phone.startsWith('08')) {
+      addToast('Nomor WhatsApp harus diawali dengan 08.', 'error');
+      return;
+    }
+
     if (password.length < 8) {
       addToast('Kata sandi minimal 8 karakter.', 'error');
       return;
@@ -79,7 +84,7 @@ function Register() {
         <div className="auth-card__header">
           <h3 className="auth-card__title auth-card__title--italic">Registrasi Akun Baru</h3>
           <p className="auth-card__subtitle">
-            Masuk ke dalam sistem pengarsipan barang hilang IPB Institutional Property Bureau.
+            Buat akun baru untuk mulai melaporkan atau mencari barang di lingkungan kampus IPB University.
           </p>
         </div>
 
@@ -87,7 +92,7 @@ function Register() {
         <form className="auth-form" onSubmit={handleSubmit} id="register-form">
           {/* Nama Lengkap */}
           <div className="auth-form-group">
-            <label className="auth-form-group__label" htmlFor="reg-name">NAMA LENGKAP</label>
+            <label className="auth-form-group__label" htmlFor="reg-name">NAMA LENGKAP <span style={{ color: 'red' }}>*</span></label>
             <div className="auth-input-wrapper">
               <input
                 type="text"
@@ -103,7 +108,7 @@ function Register() {
 
           {/* Email Institusi */}
           <div className="auth-form-group">
-            <label className="auth-form-group__label" htmlFor="reg-email">EMAIL INSTITUSI</label>
+            <label className="auth-form-group__label" htmlFor="reg-email">EMAIL INSTITUSI <span style={{ color: 'red' }}>*</span></label>
             <div className="auth-input-wrapper">
               <input
                 type="email"
@@ -119,7 +124,7 @@ function Register() {
 
           {/* NIM / NIP */}
           <div className="auth-form-group">
-            <label className="auth-form-group__label" htmlFor="reg-nim">NIM / NIP</label>
+            <label className="auth-form-group__label" htmlFor="reg-nim">NIM / NIP <span style={{ color: 'red' }}>*</span></label>
             <div className="auth-input-wrapper">
               <input
                 type="text"
@@ -135,7 +140,7 @@ function Register() {
 
           {/* Nomor Telepon */}
           <div className="auth-form-group">
-            <label className="auth-form-group__label" htmlFor="reg-phone">NOMOR WHATSAPP</label>
+            <label className="auth-form-group__label" htmlFor="reg-phone">NOMOR WHATSAPP <span style={{ color: 'red' }}>*</span></label>
             <div className="auth-input-wrapper">
               <input
                 type="tel"
@@ -151,7 +156,7 @@ function Register() {
 
           {/* Kata Sandi */}
           <div className="auth-form-group">
-            <label className="auth-form-group__label" htmlFor="reg-password">KATA SANDI</label>
+            <label className="auth-form-group__label" htmlFor="reg-password">KATA SANDI <span style={{ color: 'red' }}>*</span></label>
             <div className="auth-input-wrapper">
               <input
                 type="password"

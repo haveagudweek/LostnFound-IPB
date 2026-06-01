@@ -42,6 +42,7 @@ LostnFound-IPB/
 │   └── vite.config.js        # Konfigurasi build Vite
 │
 ├── CONTEXT.md                # Blueprint dan Arsitektur Sistem
+├── email_preview.html        # File bantu untuk mempratinjau UI Email (Jinja2) di browser
 └── README.md                 # Panduan instalasi (Dokumen ini)
 ```
 

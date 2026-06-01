@@ -124,7 +124,7 @@ function ReportForm({ type }) {
           
           <div className="report-form__row">
             <div className="report-form__group">
-              <label className="report-form__label">NAMA BARANG *</label>
+              <label className="report-form__label">NAMA BARANG <span style={{ color: 'red' }}>*</span></label>
               <input 
                 type="text" 
                 name="name"
@@ -137,7 +137,7 @@ function ReportForm({ type }) {
             </div>
             
             <div className="report-form__group">
-              <label className="report-form__label">KATEGORI BARANG *</label>
+              <label className="report-form__label">KATEGORI BARANG <span style={{ color: 'red' }}>*</span></label>
               <div className="report-form__select-wrapper">
                 <select 
                   name="category"
@@ -159,7 +159,7 @@ function ReportForm({ type }) {
 
           <div className="report-form__row">
             <div className="report-form__group">
-              <label className="report-form__label">{locationLabel} *</label>
+              <label className="report-form__label">{locationLabel} <span style={{ color: 'red' }}>*</span></label>
               <div className="report-form__input-wrapper">
                 <MapPin size={18} className="report-form__input-icon" />
                 <input 
@@ -175,7 +175,7 @@ function ReportForm({ type }) {
             </div>
             
             <div className="report-form__group">
-              <label className="report-form__label">{timeLabel} *</label>
+              <label className="report-form__label">{timeLabel} <span style={{ color: 'red' }}>*</span></label>
               <div className="report-form__input-wrapper">
                 <Calendar size={18} className="report-form__input-icon" />
                 <input 
@@ -204,7 +204,7 @@ function ReportForm({ type }) {
           </div>
 
           <div className="report-form__group">
-            <label className="report-form__label">UNGGAH FOTO/BUKTI</label>
+            <label className="report-form__label">UNGGAH FOTO/BUKTI <span style={{ color: 'red' }}>*</span></label>
             <div className="report-form__upload-area">
               {formData.image ? (
                 <div style={{ position: 'relative', width: '100%', borderRadius: '8px', overflow: 'hidden' }}>

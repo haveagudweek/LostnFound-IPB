@@ -147,12 +147,12 @@ function ClaimItem() {
 
           <div className="claim-form-grid">
             <label className="claim-field">
-              <span>Nama Lengkap *</span>
+              <span>Nama Lengkap <span style={{ color: 'red' }}>*</span></span>
               <input name="ownerName" value={formData.ownerName} onChange={handleChange} required />
             </label>
 
             <label className="claim-field">
-              <span>NIM / NIP *</span>
+              <span>NIM / NIP <span style={{ color: 'red' }}>*</span></span>
               <input name="nim" value={formData.nim} onChange={handleChange} required />
             </label>
 
@@ -168,7 +168,7 @@ function ClaimItem() {
           </div>
 
           <label className="claim-field">
-            <span>Deskripsi Bukti Pengembalian *</span>
+            <span>Deskripsi Bukti Pengembalian <span style={{ color: 'red' }}>*</span></span>
             <textarea
               name="description"
               rows="6"
@@ -180,7 +180,7 @@ function ClaimItem() {
           </label>
 
           <div className="claim-field">
-            <span>Bukti Serah Terima Barang *</span>
+            <span>Bukti Serah Terima Barang <span style={{ color: 'red' }}>*</span></span>
             {formData.evidenceImage ? (
               <div className="claim-evidence-preview">
                 <img src={evidencePreview} alt="Bukti kepemilikan" />

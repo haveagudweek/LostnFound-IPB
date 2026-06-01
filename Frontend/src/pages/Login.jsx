@@ -104,7 +104,7 @@ function Login() {
         <form className="auth-form" onSubmit={handleSubmit} id="login-form">
           {/* Email */}
           <div className="auth-form-group">
-            <label className="auth-form-group__label" htmlFor="login-email">EMAIL</label>
+            <label className="auth-form-group__label" htmlFor="login-email">EMAIL <span style={{ color: 'red' }}>*</span></label>
             <div className="auth-input-wrapper">
               <Mail size={18} className="auth-input-icon" />
               <input
@@ -121,7 +121,7 @@ function Login() {
 
           {/* Password */}
           <div className="auth-form-group">
-            <label className="auth-form-group__label" htmlFor="login-password">PASSWORD</label>
+            <label className="auth-form-group__label" htmlFor="login-password">PASSWORD <span style={{ color: 'red' }}>*</span></label>
             <div className="auth-input-wrapper">
               <KeyRound size={18} className="auth-input-icon" />
               <input
