@@ -20,6 +20,8 @@ class User(Base):
     is_verified = Column(Boolean, default=False, nullable=False)
     verification_token = Column(String(255), nullable=True, index=True)
     verification_token_created_at = Column(DateTime, nullable=True)
+    reset_token = Column(String(255), nullable=True, index=True)
+    reset_token_expires = Column(DateTime, nullable=True)
 
     laporans = relationship("Laporan", back_populates="pelapor", cascade="all, delete-orphan")
     klaims = relationship("Klaim", back_populates="pengklaim", cascade="all, delete-orphan")

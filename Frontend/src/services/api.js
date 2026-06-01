@@ -87,6 +87,14 @@ export const api = {
     method: 'POST',
     body: JSON.stringify({ email }),
   }),
+  forgotPassword: (email) => request('/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  }),
+  resetPassword: ({ token, new_password }) => request('/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ token, new_password }),
+  }),
   getItems: (type = 'all', query = '', filters = {}) => {
     const params = new URLSearchParams({ type, query });
     if (filters.category) params.set('category', filters.category);

@@ -148,7 +148,7 @@ function Login() {
               <span className="auth-remember__box" />
               <span className="auth-remember__text">Ingat riwayat</span>
             </label>
-            <a href="#" className="auth-forgot">Lupa Password?</a>
+            <Link to="/forgot-password" className="auth-forgot">Lupa Password?</Link>
           </div>
 
           {/* Submit */}

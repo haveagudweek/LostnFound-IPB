@@ -90,5 +90,77 @@
         <!-- AKHIR KODE DARI JINJA2 -->
     </div>
 
+    <hr style="border: 0; border-top: 2px dashed #ccc; margin: 40px 0;">
+
+    <h2 class="preview-title">SKENARIO 3: Verifikasi Pendaftaran Akun</h2>
+    <div class="email-subject">
+        <strong>Subject:</strong> Verifikasi Email Pendaftaran - SEEKEM IPB
+    </div>
+    
+    <!-- TEMPLATE 3: VERIFIKASI EMAIL -->
+    <div class="email-preview-box" style="padding: 0; border: none; background: transparent;">
+        <!-- AWAL KODE DARI JINJA2 (verification_email_template.html) -->
+        <div style="max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; background-color: #ffffff;">
+            <div style="background-color: #1a5632; color: #ffffff; padding: 20px; text-align: center;">
+                <h2 style="margin: 0;">SEEKEM Lost and Found</h2>
+            </div>
+            <div style="padding: 20px;">
+                <h3 style="color: #1a5632;">Halo Ahmad Mahasiswa,</h3>
+                <p>Terima kasih telah mendaftar di SEEKEM IPB. Untuk menyelesaikan pendaftaran dan dapat melakukan login, silakan verifikasi alamat email Anda dengan mengklik tombol di bawah ini:</p>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="http://localhost:5173/verify-email?token=contoh_token_123" style="background-color: #1a5632; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">Verifikasi Akun Saya</a>
+                </div>
+                
+                <p>Jika tombol di atas tidak berfungsi, Anda juga dapat menyalin dan menempelkan tautan berikut ke browser Anda:</p>
+                <p style="word-break: break-all; color: #555; background-color: #f9f9f9; padding: 10px; border-radius: 4px;">http://localhost:5173/verify-email?token=contoh_token_123</p>
+                
+                <p>Jika Anda tidak merasa mendaftar di SEEKEM IPB, silakan abaikan email ini.</p>
+                
+                <p>Terima kasih,<br>Tim SEEKEM IPB</p>
+            </div>
+            <div style="background-color: #f1f1f1; padding: 10px; text-align: center; font-size: 12px; color: #666;">
+                <p style="margin: 0;">&copy; 2026 SEEKEM IPB University. All rights reserved.</p>
+            </div>
+        </div>
+        <!-- AKHIR KODE DARI JINJA2 -->
+    </div>
+
+    <hr style="border: 0; border-top: 2px dashed #ccc; margin: 40px 0;">
+
+    <h2 class="preview-title">SKENARIO 4: Atur Ulang Kata Sandi</h2>
+    <div class="email-subject">
+        <strong>Subject:</strong> Reset Password - SEEKEM IPB
+    </div>
+    
+    <!-- TEMPLATE 4: RESET PASSWORD -->
+    <div class="email-preview-box" style="padding: 0; border: none; background: transparent;">
+        <!-- AWAL KODE DARI JINJA2 (reset_password_template.html) -->
+        <div style="max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; background-color: #ffffff;">
+            <div style="background-color: #1a5632; color: #ffffff; padding: 20px; text-align: center;">
+                <h2 style="margin: 0;">SEEKEM Lost and Found</h2>
+            </div>
+            <div style="padding: 20px;">
+                <h3 style="color: #1a5632;">Halo Ahmad Mahasiswa,</h3>
+                <p>Kami menerima permintaan untuk mengatur ulang kata sandi akun SEEKEM IPB Anda. Silakan klik tombol di bawah ini untuk membuat kata sandi baru:</p>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="http://localhost:5173/reset-password?token=contoh_token_reset_123" style="background-color: #1a5632; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">Atur Ulang Kata Sandi</a>
+                </div>
+                
+                <p>Jika tombol di atas tidak berfungsi, Anda juga dapat menyalin dan menempelkan tautan berikut ke browser Anda:</p>
+                <p style="word-break: break-all; color: #555; background-color: #f9f9f9; padding: 10px; border-radius: 4px;">http://localhost:5173/reset-password?token=contoh_token_reset_123</p>
+                
+                <p>Tautan ini hanya berlaku selama 15 menit. Jika Anda tidak merasa melakukan permintaan ini, silakan abaikan email ini dan pastikan akun Anda tetap aman.</p>
+                
+                <p>Terima kasih,<br>Tim SEEKEM IPB</p>
+            </div>
+            <div style="background-color: #f1f1f1; padding: 10px; text-align: center; font-size: 12px; color: #666;">
+                <p style="margin: 0;">&copy; 2026 SEEKEM IPB University. All rights reserved.</p>
+            </div>
+        </div>
+        <!-- AKHIR KODE DARI JINJA2 -->
+    </div>
+
 </body>
 </html>
