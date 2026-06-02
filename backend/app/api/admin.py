@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, Form, UploadFile, File
+import json
+
+from fastapi import APIRouter, Depends, HTTPException, Form, UploadFile, File, Query, Request
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -11,12 +13,15 @@ from app.schemas.admin import (
     AdminClaimResponse, AdminClaimCreate, AdminClaimAction,
     AdminItemAction
 )
+from app.schemas.audit import ActivityLogResponse, AuditLogResponse
 from app.schemas.item import ItemResponse
 from app.api.deps import get_current_user, get_current_active_admin
 from app.services.klaim_service import KlaimService
 from app.services.upload_service import UploadService
 from app.services.notifikasi_service import NotifikasiService
+from app.services.audit_service import AuditLogService
 from app.models.notifikasi import TipeNotifikasi
+from app.models.audit_log import AuditLog
 
 router = APIRouter()
 
@@ -139,6 +144,7 @@ def get_verification_report_by_id(
 
 @router.patch("/verification/{report_id}", response_model=AdminReportResponse)
 def verify_report(
+    request: Request,
     report_id: int,
     body: AdminVerifyAction,
     db: Session = Depends(get_db),
@@ -154,6 +160,7 @@ def verify_report(
 
     try:
         if body.action == "approve":
+            old_status = lap.status.value
             lap.status = StatusLaporan.published
             NotifikasiService.create_notifikasi(
                 db=db,
@@ -162,6 +169,7 @@ def verify_report(
                 tipe=TipeNotifikasi.SUCCESS,
             )
         elif body.action == "reject":
+            old_status = lap.status.value
             lap.status = StatusLaporan.rejected
             NotifikasiService.create_notifikasi(
                 db=db,
@@ -172,6 +180,20 @@ def verify_report(
         else:
             raise HTTPException(status_code=400, detail="Action harus 'approve' atau 'reject'")
 
+        AuditLogService.create(
+            db=db,
+            action=f"admin.report.{body.action}",
+            actor=current_admin,
+            resource_type="laporan",
+            resource_id=lap.id,
+            detail={
+                "old_status": old_status,
+                "new_status": lap.status.value,
+                "item_name": lap.nama_barang,
+                "reporter_id": lap.pelapor_id,
+            },
+            request=request,
+        )
         db.commit()
         db.refresh(lap)
         return _laporan_to_admin_report(lap)
@@ -218,6 +240,7 @@ def get_claim_by_id(
 
 @router.patch("/claims/{claim_id}", response_model=AdminClaimResponse)
 def verify_claim(
+    request: Request,
     claim_id: int,
     body: AdminClaimAction,
     db: Session = Depends(get_db),
@@ -234,6 +257,8 @@ def verify_claim(
     lap = db.query(Laporan).filter(Laporan.id == klm.laporan_id).first()
 
     try:
+        old_claim_status = klm.status_klaim.value
+        old_report_status = lap.status.value if lap else None
         if body.action == "approve":
             klm.status_klaim = StatusKlaim.approved
             NotifikasiService.create_notifikasi(
@@ -255,6 +280,22 @@ def verify_claim(
         else:
             raise HTTPException(status_code=400, detail="Action harus 'approve' atau 'reject'")
 
+        AuditLogService.create(
+            db=db,
+            action=f"admin.claim.{body.action}",
+            actor=current_admin,
+            resource_type="klaim",
+            resource_id=klm.id,
+            detail={
+                "old_claim_status": old_claim_status,
+                "new_claim_status": klm.status_klaim.value,
+                "old_report_status": old_report_status,
+                "new_report_status": lap.status.value if lap else None,
+                "laporan_id": klm.laporan_id,
+                "claimant_id": klm.pengklaim_id,
+            },
+            request=request,
+        )
         db.commit()
         db.refresh(klm)
         return _klaim_to_admin_claim(klm)
@@ -311,6 +352,7 @@ def get_posted_items(
 
 @router.patch("/items/{item_id}", response_model=ItemResponse)
 def manage_posted_item(
+    request: Request,
     item_id: int,
     body: AdminItemAction,
     db: Session = Depends(get_db),
@@ -325,6 +367,8 @@ def manage_posted_item(
     if not lap:
         raise HTTPException(status_code=404, detail="Barang tidak ditemukan")
 
+    old_status = lap.status.value
+    affected_claim_ids = []
     if body.action == "delete":
         lap.status = StatusLaporan.rejected # as a form of deletion
     elif body.action == "hold":
@@ -340,13 +384,192 @@ def manage_posted_item(
         ).all()
         for claim in claims:
             claim.status_klaim = StatusKlaim.rejected
+            affected_claim_ids.append(claim.id)
     else:
         raise HTTPException(status_code=400, detail="Action tidak dikenal")
 
+    AuditLogService.create(
+        db=db,
+        action=f"admin.item.{body.action}",
+        actor=current_admin,
+        resource_type="laporan",
+        resource_id=lap.id,
+        detail={
+            "old_status": old_status,
+            "new_status": lap.status.value,
+            "item_name": lap.nama_barang,
+            "affected_claim_ids": affected_claim_ids,
+        },
+        request=request,
+    )
     db.commit()
     db.refresh(lap)
     
     item_res = _laporan_to_item(lap)
     item_res["postingStatus"] = "held" if body.action == "hold" else "posted"
     return item_res
+
+
+@router.get("/audit-logs", response_model=List[AuditLogResponse])
+def get_audit_logs(
+    limit: int = Query(100, ge=1, le=500),
+    action: str | None = Query(None),
+    actor_email: str | None = Query(None),
+    resource_type: str | None = Query(None),
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_active_admin),
+):
+    query = db.query(AuditLog)
+    if action:
+        query = query.filter(AuditLog.action == action)
+    if actor_email:
+        query = query.filter(AuditLog.actor_email == actor_email)
+    if resource_type:
+        query = query.filter(AuditLog.resource_type == resource_type)
+
+    return query.order_by(AuditLog.created_at.desc()).limit(limit).all()
+
+
+@router.get("/activity-logs", response_model=List[ActivityLogResponse])
+def get_activity_logs(
+    limit: int = Query(100, ge=1, le=500),
+    event_type: str | None = Query(None),
+    resource_type: str | None = Query(None),
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_active_admin),
+):
+    activities = []
+
+    def add_activity(
+        id: str,
+        event_type: str,
+        resource_type: str,
+        resource_id: int,
+        title: str,
+        created_at,
+        description: str | None = None,
+        actor_name: str | None = None,
+        actor_email: str | None = None,
+        status: str = "info",
+    ):
+        if not created_at:
+            return
+        activities.append({
+            "id": id,
+            "event_type": event_type,
+            "resource_type": resource_type,
+            "resource_id": resource_id,
+            "title": title,
+            "description": description,
+            "actor_name": actor_name,
+            "actor_email": actor_email,
+            "status": status,
+            "created_at": created_at,
+        })
+
+    if resource_type in (None, "laporan"):
+        laporans = db.query(Laporan).order_by(Laporan.created_at.desc()).limit(limit).all()
+        for lap in laporans:
+            add_activity(
+                id=f"laporan-created-{lap.id}",
+                event_type="laporan.created",
+                resource_type="laporan",
+                resource_id=lap.id,
+                title=f"Laporan baru: {lap.nama_barang}",
+                description=f"{lap.jenis_laporan.value} di {lap.lokasi}",
+                actor_name=lap.pelapor.name if lap.pelapor else None,
+                actor_email=lap.pelapor.email if lap.pelapor else None,
+                status=lap.status.value,
+                created_at=lap.created_at,
+            )
+
+    if resource_type in (None, "klaim"):
+        klaims = db.query(Klaim).order_by(Klaim.tanggal_klaim.desc()).limit(limit).all()
+        for klm in klaims:
+            item_name = klm.laporan.nama_barang if klm.laporan else f"Laporan #{klm.laporan_id}"
+            add_activity(
+                id=f"klaim-created-{klm.id}",
+                event_type="klaim.created",
+                resource_type="klaim",
+                resource_id=klm.id,
+                title=f"Klaim masuk: {item_name}",
+                description=klm.alasan_klaim,
+                actor_name=klm.pengklaim.name if klm.pengklaim else klm.owner_name,
+                actor_email=klm.pengklaim.email if klm.pengklaim else None,
+                status=klm.status_klaim.value,
+                created_at=klm.tanggal_klaim,
+            )
+            add_activity(
+                id=f"item-claimed-{klm.id}",
+                event_type="item.claimed",
+                resource_type="laporan",
+                resource_id=klm.laporan_id,
+                title=f"Item diklaim: {item_name}",
+                description=f"Klaim #{klm.id} dibuat dan laporan masuk status claimed.",
+                actor_name=klm.pengklaim.name if klm.pengklaim else klm.owner_name,
+                actor_email=klm.pengklaim.email if klm.pengklaim else None,
+                status="claimed",
+                created_at=klm.tanggal_klaim,
+            )
+
+    audit_event_map = {
+        "admin.report.approve": ("laporan.approved", "Laporan disetujui"),
+        "admin.report.reject": ("laporan.rejected", "Laporan ditolak"),
+        "admin.item.hold": ("laporan.held", "Laporan di-hold"),
+        "admin.item.post": ("laporan.published", "Laporan dipublikasikan"),
+        "admin.item.delete": ("laporan.deleted", "Laporan dihapus"),
+        "admin.item.cancel_claim": ("klaim.cancelled", "Klaim dibatalkan"),
+        "admin.claim.approve": ("klaim.approved", "Klaim disetujui"),
+        "admin.claim.reject": ("klaim.rejected", "Klaim ditolak"),
+        "item.resolved": ("item.resolved", "Item selesai"),
+    }
+
+    audit_logs = db.query(AuditLog).filter(
+        AuditLog.action.in_(audit_event_map.keys())
+    ).order_by(AuditLog.created_at.desc()).limit(limit).all()
+
+    for log in audit_logs:
+        mapped_event, title_prefix = audit_event_map[log.action]
+        detail = {}
+        if log.detail:
+            try:
+                detail = json.loads(log.detail)
+            except json.JSONDecodeError:
+                detail = {"detail": log.detail}
+
+        target_resource_type = log.resource_type or (
+            "klaim" if mapped_event.startswith("klaim.") else "laporan"
+        )
+        target_resource_id = int(log.resource_id) if log.resource_id and str(log.resource_id).isdigit() else 0
+        item_name = detail.get("item_name")
+        title = f"{title_prefix}: {item_name}" if item_name else title_prefix
+        description_parts = []
+        if detail.get("old_status") and detail.get("new_status"):
+            description_parts.append(f"{detail['old_status']} -> {detail['new_status']}")
+        if detail.get("old_claim_status") and detail.get("new_claim_status"):
+            description_parts.append(f"{detail['old_claim_status']} -> {detail['new_claim_status']}")
+        if detail.get("affected_claim_ids"):
+            description_parts.append(f"affected claims: {', '.join(map(str, detail['affected_claim_ids']))}")
+        if detail.get("detail"):
+            description_parts.append(str(detail["detail"]))
+
+        add_activity(
+            id=f"audit-{log.id}",
+            event_type=mapped_event,
+            resource_type=target_resource_type,
+            resource_id=target_resource_id,
+            title=title,
+            description=" | ".join(description_parts) or log.detail,
+            actor_email=log.actor_email,
+            status=detail.get("new_status")
+                or detail.get("new_claim_status")
+                or ("success" if log.success else "failed"),
+            created_at=log.created_at,
+        )
+
+    if event_type:
+        activities = [activity for activity in activities if activity["event_type"] == event_type]
+
+    activities.sort(key=lambda activity: activity["created_at"], reverse=True)
+    return activities[:limit]
 
