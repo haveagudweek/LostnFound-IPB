@@ -17,6 +17,7 @@ Sistem menggunakan arsitektur Decoupled (Client-Server) terpisah:
 - **Database (Data Layer)**: Relational Database PostgreSQL yang di-mapping menggunakan ORM SQLAlchemy.
 - **Cloud Storage**: Layanan pihak ketiga (Cloudinary) digunakan untuk menyimpan gambar bukti laporan dan klaim (Image Hosting).
 - **Notification & Mailing**: Menggunakan `httpx` untuk menembakkan notifikasi asinkronus via HTTP Webhook (Google Apps Script) dengan kerangka HTML berbasis Jinja2, serta sistem notifikasi In-App persisten di Database.
+- **Security & Logging**: Implementasi `cryptography` untuk enkripsi data sensitif (PII) di level database serta *Cryptographic Audit Signature* untuk memastikan integritas catatan aktivitas (*Audit Logs*).
 
 ## 3. Core Actors (User Roles)
 Sistem memiliki kontrol akses berbasis peran (RBAC) yang ketat:
@@ -43,13 +44,17 @@ Semua field dengan pilihan terbatas dijaga menggunakan `Enum` di PostgreSQL:
 
 ### B. Tabel-Tabel Utama
 1. **Tabel `users`**
-   - Atribut: `id` (PK), `name`, `email` (Unique), `nim`, `phone`, `password_hash`, `role`, `is_verified`, `verification_token`, `verification_token_created_at`, `reset_token`, `reset_token_expires`.
+   - Atribut: `id` (PK), `name`, `email` (Unique), `nim`, `phone` (Encrypted), `password_hash`, `role`, `is_verified`, `verification_token`, `verification_token_created_at`, `reset_token`, `reset_token_expires`.
 2. **Tabel `laporan`**
    - Atribut: `id` (PK), `pelapor_id` (FK -> users), `jenis_laporan`, `tanggal_kejadian`, `lokasi`, `deskripsi`, `nama_barang`, `kategori`, `foto_url`, `status`, `created_at`.
 3. **Tabel `klaim`**
-   - Atribut: `id` (PK), `laporan_id` (FK -> laporan), `pengklaim_id` (FK -> users), `tanggal_klaim`, `alasan_klaim`, `bukti_foto_url`, `owner_name`, `nim`, `faculty`, `contact`, `status_klaim`.
+   - Atribut: `id` (PK), `laporan_id` (FK -> laporan), `pengklaim_id` (FK -> users), `tanggal_klaim`, `alasan_klaim`, `bukti_foto_url`, `owner_name`, `nim`, `faculty`, `contact` (Encrypted), `status_klaim`.
 4. **Tabel `notifikasi`**
    - Atribut: `id` (PK), `user_id` (FK -> users), `pesan`, `tipe`, `tanggal_kirim`, `is_read`.
+5. **Tabel `activity_logs`**
+   - Atribut: `id` (PK), `actor_user_id` (FK -> users), `actor_email`, `event_type`, `resource_type`, `resource_id`, `title`, `description`, `status`, `created_at`.
+6. **Tabel `audit_logs`**
+   - Atribut: `id` (PK), `actor_user_id` (FK -> users), `actor_email`, `action`, `resource_type`, `resource_id`, `detail`, `ip_address`, `user_agent`, `success`, `created_at`, `signature_algorithm`, `signature`.
 
 ## 5. System Workflows (Business Logic)
 Berikut adalah alur logika yang bisa digambar menjadi *Sequence Diagram* atau *Activity Diagram*:
@@ -105,3 +110,5 @@ Berikut adalah alur logika yang bisa digambar menjadi *Sequence Diagram* atau *A
 1. **Proteksi Endpoint**: Setiap URL API yang membutuhkan autentikasi dikunci menggunakan skema JWT Bearer Token (`get_current_user`). Jika endpoint tersebut khusus admin, ia dikunci dengan pengecekan ganda (`get_current_active_admin`).
 2. **CORS Policy**: Backend mengizinkan komunikasi *cross-origin* (CORS) sehingga API aman dipanggil oleh aplikasi React.
 3. **Data Isolation**: User biasa sama sekali tidak dapat memanipulasi *request* untuk mengubah peran (`role`) mereka menjadi `admin` saat registrasi, karena arsitektur Pydantic secara *default* membuang dan mengabaikan parameter tak diundang (*Mass Assignment Protection*).
+4. **Data Privacy (PII Protection)**: Data Personal Identifiable Information (PII) sensitif seperti `phone` (pada pengguna) dan `contact` (pada klaim) dienkripsi di level database menggunakan *Symmetric Encryption* berbasis Fernet.
+5. **Audit & Accountability**: Aksi-aksi kritikal di sistem dicatat dalam `audit_logs` dan `activity_logs`. Pada `audit_logs`, ditambahkan *Cryptographic Signature* pada setiap record log guna mencegah *tampering* (manipulasi data secara ilegal di level database).

@@ -23,18 +23,21 @@ LostnFound-IPB/
 │   ├── alembic/              # File migrasi database
 │   ├── app/
 │   │   ├── api/              # Endpoint router/controller
-│   │   ├── core/             # Konfigurasi utama & keamanan (JWT)
+│   │   ├── cores/            # Konfigurasi utama & keamanan (JWT, Database)
 │   │   ├── models/           # Definisi tabel SQLAlchemy
 │   │   ├── schemas/          # Validasi data Pydantic
 │   │   ├── services/         # Logika bisnis (EmailService, dll.)
-│   │   └── templates/        # Template HTML (mis. email_template.html)
+│   │   ├── templates/        # Template HTML (mis. email_template.html)
+│   │   └── utils/            # Modul utilitas keamanan, enkripsi (PII), & audit signature
 │   ├── alembic.ini           # Konfigurasi koneksi Alembic
 │   └── requirements.txt      # Dependensi Python
 │
 ├── Frontend/                 # Client-side code (React + Vite)
 │   ├── public/               # Aset statis (gambar, favicon)
 │   ├── src/
+│   │   ├── assets/           # Aset internal Frontend
 │   │   ├── components/       # Komponen UI modular
+│   │   ├── data/             # Data statis & dummy
 │   │   ├── pages/            # Halaman utama aplikasi
 │   │   ├── services/         # Konfigurasi Axios & pemanggilan API
 │   │   └── store/            # State management (Zustand)
