@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Form, Request
+from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Form
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from typing import List
@@ -10,7 +10,7 @@ from app.models.laporan import Laporan, StatusLaporan, JenisLaporan
 from app.schemas.item import ItemResponse
 from app.api.deps import get_current_user
 from app.services.upload_service import UploadService
-from app.services.audit_service import AuditLogService
+from app.services.activity_service import ActivityLogService
 
 from app.models.klaim import Klaim, StatusKlaim
 from app.models.notifikasi import TipeNotifikasi
@@ -125,7 +125,6 @@ def get_item_by_id(item_id: int, db: Session = Depends(get_db)):
 
 @router.post("/report/{type}", response_model=ItemResponse, status_code=201)
 async def report_item(
-    request: Request,
     type: str,
     name: str = Form(...),
     category: str = Form(...),
@@ -170,19 +169,15 @@ async def report_item(
     )
     db.add(new_lap)
     db.flush()
-    AuditLogService.create(
+    ActivityLogService.create(
         db=db,
-        action="laporan.created",
+        event_type="laporan.created",
         actor=current_user,
         resource_type="laporan",
         resource_id=new_lap.id,
-        detail={
-            "item_name": name,
-            "jenis_laporan": jenis.value,
-            "category": category,
-            "location": location,
-        },
-        request=request,
+        title=f"Laporan baru: {name}",
+        description=f"{jenis.value} di {location} ({category})",
+        status=new_lap.status.value,
     )
     db.commit()
     db.refresh(new_lap)
@@ -191,7 +186,6 @@ async def report_item(
 
 @router.patch("/{item_id}/claim-confirmation", response_model=ItemResponse)
 def confirm_lost_item_claimed(
-    request: Request,
     item_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -213,18 +207,15 @@ def confirm_lost_item_claimed(
     # Set status jadi resolved
     old_status = lap.status.value
     lap.status = StatusLaporan.resolved
-    AuditLogService.create(
+    ActivityLogService.create(
         db=db,
-        action="item.resolved",
+        event_type="item.resolved",
         actor=current_user,
         resource_type="laporan",
         resource_id=lap.id,
-        detail={
-            "old_status": old_status,
-            "new_status": lap.status.value,
-            "item_name": lap.nama_barang,
-        },
-        request=request,
+        title=f"Item selesai: {lap.nama_barang}",
+        description=f"{old_status} -> {lap.status.value}",
+        status=lap.status.value,
     )
     db.commit()
     db.refresh(lap)
@@ -238,7 +229,6 @@ def confirm_lost_item_claimed(
 
 @router.post("/{item_id}/claims", response_model=AdminClaimResponse, status_code=201)
 async def create_claim(
-    request: Request,
     item_id: int,
     ownerName: str = Form(...),
     nim: str = Form(...),
@@ -297,32 +287,25 @@ async def create_claim(
         )
 
         db.flush()
-        AuditLogService.create(
+        ActivityLogService.create(
             db=db,
-            action="klaim.created",
+            event_type="klaim.created",
             actor=current_user,
             resource_type="klaim",
             resource_id=new_klaim.id,
-            detail={
-                "laporan_id": item_id,
-                "item_name": lap.nama_barang,
-                "owner_name": ownerName,
-            },
-            request=request,
+            title=f"Klaim masuk: {lap.nama_barang}",
+            description=description,
+            status=new_klaim.status_klaim.value,
         )
-        AuditLogService.create(
+        ActivityLogService.create(
             db=db,
-            action="item.claimed",
+            event_type="item.claimed",
             actor=current_user,
             resource_type="laporan",
             resource_id=lap.id,
-            detail={
-                "old_status": old_status,
-                "new_status": lap.status.value,
-                "item_name": lap.nama_barang,
-                "klaim_id": new_klaim.id,
-            },
-            request=request,
+            title=f"Item diklaim: {lap.nama_barang}",
+            description=f"{old_status} -> {lap.status.value}; klaim #{new_klaim.id}",
+            status=lap.status.value,
         )
 
         db.commit()

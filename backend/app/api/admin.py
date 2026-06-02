@@ -1,11 +1,9 @@
-import json
-
 from fastapi import APIRouter, Depends, HTTPException, Form, UploadFile, File, Query, Request
 from sqlalchemy.orm import Session
 from typing import List
 
 from app.cores.database import get_db
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.models.laporan import Laporan, StatusLaporan, JenisLaporan
 from app.models.klaim import Klaim, StatusKlaim
 from app.schemas.admin import (
@@ -22,6 +20,7 @@ from app.services.notifikasi_service import NotifikasiService
 from app.services.audit_service import AuditLogService
 from app.models.notifikasi import TipeNotifikasi
 from app.models.audit_log import AuditLog
+from app.models.activity_log import ActivityLog
 
 router = APIRouter()
 
@@ -420,6 +419,13 @@ def get_audit_logs(
     current_admin: User = Depends(get_current_active_admin),
 ):
     query = db.query(AuditLog)
+    operational_actions = {
+        "laporan.created",
+        "klaim.created",
+        "item.claimed",
+        "item.resolved",
+    }
+    query = query.filter(~AuditLog.action.in_(operational_actions))
     if action:
         query = query.filter(AuditLog.action == action)
     if actor_email:
@@ -438,138 +444,16 @@ def get_activity_logs(
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_active_admin),
 ):
-    activities = []
-
-    def add_activity(
-        id: str,
-        event_type: str,
-        resource_type: str,
-        resource_id: int,
-        title: str,
-        created_at,
-        description: str | None = None,
-        actor_name: str | None = None,
-        actor_email: str | None = None,
-        status: str = "info",
-    ):
-        if not created_at:
-            return
-        activities.append({
-            "id": id,
-            "event_type": event_type,
-            "resource_type": resource_type,
-            "resource_id": resource_id,
-            "title": title,
-            "description": description,
-            "actor_name": actor_name,
-            "actor_email": actor_email,
-            "status": status,
-            "created_at": created_at,
-        })
-
-    if resource_type in (None, "laporan"):
-        laporans = db.query(Laporan).order_by(Laporan.created_at.desc()).limit(limit).all()
-        for lap in laporans:
-            add_activity(
-                id=f"laporan-created-{lap.id}",
-                event_type="laporan.created",
-                resource_type="laporan",
-                resource_id=lap.id,
-                title=f"Laporan baru: {lap.nama_barang}",
-                description=f"{lap.jenis_laporan.value} di {lap.lokasi}",
-                actor_name=lap.pelapor.name if lap.pelapor else None,
-                actor_email=lap.pelapor.email if lap.pelapor else None,
-                status=lap.status.value,
-                created_at=lap.created_at,
-            )
-
-    if resource_type in (None, "klaim"):
-        klaims = db.query(Klaim).order_by(Klaim.tanggal_klaim.desc()).limit(limit).all()
-        for klm in klaims:
-            item_name = klm.laporan.nama_barang if klm.laporan else f"Laporan #{klm.laporan_id}"
-            add_activity(
-                id=f"klaim-created-{klm.id}",
-                event_type="klaim.created",
-                resource_type="klaim",
-                resource_id=klm.id,
-                title=f"Klaim masuk: {item_name}",
-                description=klm.alasan_klaim,
-                actor_name=klm.pengklaim.name if klm.pengklaim else klm.owner_name,
-                actor_email=klm.pengklaim.email if klm.pengklaim else None,
-                status=klm.status_klaim.value,
-                created_at=klm.tanggal_klaim,
-            )
-            add_activity(
-                id=f"item-claimed-{klm.id}",
-                event_type="item.claimed",
-                resource_type="laporan",
-                resource_id=klm.laporan_id,
-                title=f"Item diklaim: {item_name}",
-                description=f"Klaim #{klm.id} dibuat dan laporan masuk status claimed.",
-                actor_name=klm.pengklaim.name if klm.pengklaim else klm.owner_name,
-                actor_email=klm.pengklaim.email if klm.pengklaim else None,
-                status="claimed",
-                created_at=klm.tanggal_klaim,
-            )
-
-    audit_event_map = {
-        "admin.report.approve": ("laporan.approved", "Laporan disetujui"),
-        "admin.report.reject": ("laporan.rejected", "Laporan ditolak"),
-        "admin.item.hold": ("laporan.held", "Laporan di-hold"),
-        "admin.item.post": ("laporan.published", "Laporan dipublikasikan"),
-        "admin.item.delete": ("laporan.deleted", "Laporan dihapus"),
-        "admin.item.cancel_claim": ("klaim.cancelled", "Klaim dibatalkan"),
-        "admin.claim.approve": ("klaim.approved", "Klaim disetujui"),
-        "admin.claim.reject": ("klaim.rejected", "Klaim ditolak"),
-        "item.resolved": ("item.resolved", "Item selesai"),
-    }
-
-    audit_logs = db.query(AuditLog).filter(
-        AuditLog.action.in_(audit_event_map.keys())
-    ).order_by(AuditLog.created_at.desc()).limit(limit).all()
-
-    for log in audit_logs:
-        mapped_event, title_prefix = audit_event_map[log.action]
-        detail = {}
-        if log.detail:
-            try:
-                detail = json.loads(log.detail)
-            except json.JSONDecodeError:
-                detail = {"detail": log.detail}
-
-        target_resource_type = log.resource_type or (
-            "klaim" if mapped_event.startswith("klaim.") else "laporan"
-        )
-        target_resource_id = int(log.resource_id) if log.resource_id and str(log.resource_id).isdigit() else 0
-        item_name = detail.get("item_name")
-        title = f"{title_prefix}: {item_name}" if item_name else title_prefix
-        description_parts = []
-        if detail.get("old_status") and detail.get("new_status"):
-            description_parts.append(f"{detail['old_status']} -> {detail['new_status']}")
-        if detail.get("old_claim_status") and detail.get("new_claim_status"):
-            description_parts.append(f"{detail['old_claim_status']} -> {detail['new_claim_status']}")
-        if detail.get("affected_claim_ids"):
-            description_parts.append(f"affected claims: {', '.join(map(str, detail['affected_claim_ids']))}")
-        if detail.get("detail"):
-            description_parts.append(str(detail["detail"]))
-
-        add_activity(
-            id=f"audit-{log.id}",
-            event_type=mapped_event,
-            resource_type=target_resource_type,
-            resource_id=target_resource_id,
-            title=title,
-            description=" | ".join(description_parts) or log.detail,
-            actor_email=log.actor_email,
-            status=detail.get("new_status")
-                or detail.get("new_claim_status")
-                or ("success" if log.success else "failed"),
-            created_at=log.created_at,
-        )
-
+    admin_user_ids = db.query(User.id).filter(User.role == UserRole.admin)
+    admin_emails = db.query(User.email).filter(User.role == UserRole.admin)
+    query = db.query(ActivityLog).filter(
+        (ActivityLog.actor_user_id.is_(None) | ~ActivityLog.actor_user_id.in_(admin_user_ids)),
+        (ActivityLog.actor_email.is_(None) | ~ActivityLog.actor_email.in_(admin_emails)),
+    )
     if event_type:
-        activities = [activity for activity in activities if activity["event_type"] == event_type]
+        query = query.filter(ActivityLog.event_type == event_type)
+    if resource_type:
+        query = query.filter(ActivityLog.resource_type == resource_type)
 
-    activities.sort(key=lambda activity: activity["created_at"], reverse=True)
-    return activities[:limit]
+    return query.order_by(ActivityLog.created_at.desc()).limit(limit).all()
 

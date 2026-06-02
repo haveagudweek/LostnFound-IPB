@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from fastapi import Request
@@ -6,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.models.audit_log import AuditLog
 from app.models.user import User
+from app.utils.audit_signature import AUDIT_SIGNATURE_ALGORITHM, sign_audit_log
 
 
 class AuditLogService:
@@ -38,6 +40,12 @@ class AuditLogService:
             ip_address=request.client.host if request and request.client else None,
             user_agent=request.headers.get("user-agent") if request else None,
             success=success,
+            created_at=datetime.now(timezone.utc).replace(tzinfo=None),
         )
+        signature = sign_audit_log(log)
+        if signature:
+            log.signature_algorithm = AUDIT_SIGNATURE_ALGORITHM
+            log.signature = signature
+
         db.add(log)
         return log

@@ -244,7 +244,7 @@ function AuditLogPanel({
         <AuditMetric label="TOTAL EVENT" value={logs.length} />
         <AuditMetric label="SUCCESS" value={logs.filter((log) => log.success).length} />
         <AuditMetric label="FAILED" value={logs.filter((log) => !log.success).length} />
-        <AuditMetric label="ADMIN ACTION" value={logs.filter((log) => log.action?.startsWith('admin.')).length} />
+        <AuditMetric label="SIGNED" value={logs.filter((log) => log.signature_valid === true).length} />
       </section>
 
       <section className="admin-filter-card">
@@ -307,6 +307,7 @@ function AuditLogPanel({
                   <th>DETAIL</th>
                   <th>IP</th>
                   <th>STATUS</th>
+                  <th>INTEGRITY</th>
                 </tr>
               </thead>
               <tbody>
@@ -327,6 +328,7 @@ function AuditLogPanel({
                         {log.success ? 'Success' : 'Failed'}
                       </span>
                     </td>
+                    <td><SignatureStatusBadge signatureValid={log.signature_valid} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -347,6 +349,18 @@ function AuditLogPanel({
       </section>
     </>
   );
+}
+
+function SignatureStatusBadge({ signatureValid }) {
+  if (signatureValid === true) {
+    return <span className="admin-status admin-status--green">Valid</span>;
+  }
+
+  if (signatureValid === false) {
+    return <span className="admin-status admin-status--red">Invalid</span>;
+  }
+
+  return <span className="admin-status admin-status--gray">Unsigned</span>;
 }
 
 function ActivityLogPanel({

@@ -84,7 +84,7 @@ def rebuild_database() -> None:
     from app.models.base import Base
 
     # Import all models so SQLAlchemy registers every table in Base.metadata.
-    from app.models import audit_log, klaim, laporan, notifikasi, user  # noqa: F401
+    from app.models import activity_log, audit_log, klaim, laporan, notifikasi, user  # noqa: F401
 
     with engine.begin() as connection:
         Base.metadata.drop_all(bind=connection)
@@ -109,7 +109,7 @@ def audit_schema() -> bool:
     from app.models.base import Base
 
     # Import all models so SQLAlchemy registers every table in Base.metadata.
-    from app.models import audit_log, klaim, laporan, notifikasi, user  # noqa: F401
+    from app.models import activity_log, audit_log, klaim, laporan, notifikasi, user  # noqa: F401
 
     inspector = inspect(engine)
     database_tables = set(inspector.get_table_names())

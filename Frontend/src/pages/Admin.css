@@ -784,6 +784,11 @@
   width: 104px;
 }
 
+.admin-table--audit th:nth-child(8),
+.admin-table--audit td:nth-child(8) {
+  width: 112px;
+}
+
 .admin-table--activity th:nth-child(1),
 .admin-table--activity td:nth-child(1) {
   width: 136px;

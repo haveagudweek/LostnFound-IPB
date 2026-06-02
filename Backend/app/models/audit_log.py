@@ -19,5 +19,13 @@ class AuditLog(Base):
     user_agent = Column(String(512), nullable=True)
     success = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=func.now(), nullable=False, index=True)
+    signature_algorithm = Column(String(50), nullable=True)
+    signature = Column(Text, nullable=True)
 
     actor = relationship("User")
+
+    @property
+    def signature_valid(self) -> bool | None:
+        from app.utils.audit_signature import verify_audit_log_signature
+
+        return verify_audit_log_signature(self)

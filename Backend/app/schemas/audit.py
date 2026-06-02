@@ -16,13 +16,15 @@ class AuditLogResponse(BaseModel):
     user_agent: Optional[str] = None
     success: bool
     created_at: datetime
+    signature_algorithm: Optional[str] = None
+    signature_valid: Optional[bool] = None
 
     class Config:
         from_attributes = True
 
 
 class ActivityLogResponse(BaseModel):
-    id: str
+    id: int
     event_type: str
     resource_type: str
     resource_id: int
