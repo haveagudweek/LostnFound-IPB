@@ -27,6 +27,7 @@ import AdminReportDetail from './pages/AdminReportDetail';
 import AdminPostedItems from './pages/AdminPostedItems';
 import AdminClaims from './pages/AdminClaims';
 import AdminClaimDetail from './pages/AdminClaimDetail';
+import AdminAuditLogs from './pages/AdminAuditLogs';
 import VerifyEmail from './pages/VerifyEmail';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
@@ -120,6 +121,7 @@ function App() {
         <Route path="/admin/items" element={<AdminRoute><AdminPostedItems /></AdminRoute>} />
         <Route path="/admin/claims" element={<AdminRoute><AdminClaims /></AdminRoute>} />
         <Route path="/admin/claims/:id" element={<AdminRoute><AdminClaimDetail /></AdminRoute>} />
+        <Route path="/admin/audit-logs" element={<AdminRoute><AdminAuditLogs /></AdminRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       {!hideChrome && <Footer />}

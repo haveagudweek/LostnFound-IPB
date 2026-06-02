@@ -175,4 +175,17 @@ export const api = {
     method: 'PATCH',
     body: JSON.stringify({ action }),
   }),
+  getAuditLogs: ({ limit = 100, action = '', actorEmail = '', resourceType = '' } = {}) => {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (action) params.set('action', action);
+    if (actorEmail) params.set('actor_email', actorEmail);
+    if (resourceType) params.set('resource_type', resourceType);
+    return request(`/admin/audit-logs?${params.toString()}`);
+  },
+  getActivityLogs: ({ limit = 100, eventType = '', resourceType = '' } = {}) => {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (eventType) params.set('event_type', eventType);
+    if (resourceType) params.set('resource_type', resourceType);
+    return request(`/admin/activity-logs?${params.toString()}`);
+  },
 };
